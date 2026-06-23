@@ -6,8 +6,7 @@ import Field from '@/components/Field';
 import Button from '@/components/Button';
 import { colors, spacing, font, radius } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
-import { collections } from '@/db';
-import { addCategory, updateCategory, archiveCategory } from '@/data/repository';
+import { addCategory, updateCategory, archiveCategory, getCategory } from '@/data/repository';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import type { Bucket } from '@/calc/types';
 
@@ -30,7 +29,8 @@ export default function CategoryFormScreen() {
 
   useEffect(() => {
     if (!categoryId) return;
-    collections.categories.find(categoryId).then((row) => {
+    getCategory(categoryId).then((row) => {
+      if (!row) return;
       setName(row.name);
       setCap(row.allocationCapPercent != null ? String(row.allocationCapPercent) : '');
       setBucket(row.bucket);

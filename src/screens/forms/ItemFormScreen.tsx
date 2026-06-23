@@ -6,8 +6,7 @@ import Field from '@/components/Field';
 import Button from '@/components/Button';
 import { colors, spacing, font } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
-import { collections } from '@/db';
-import { addItem, updateItem, archiveItem } from '@/data/repository';
+import { addItem, updateItem, archiveItem, getItem } from '@/data/repository';
 import { toCents, formatCents } from '@/utils/money';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
@@ -25,7 +24,8 @@ export default function ItemFormScreen() {
 
   useEffect(() => {
     if (!itemId) return;
-    collections.items.find(itemId).then((row) => {
+    getItem(itemId).then((row) => {
+      if (!row) return;
       setName(row.name);
       setCap(formatCents(row.budgetCapCents));
       setActual(formatCents(row.actualSpentCents));

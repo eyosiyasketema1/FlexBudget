@@ -6,8 +6,7 @@ import Field from '@/components/Field';
 import Button from '@/components/Button';
 import { colors, spacing } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
-import { collections } from '@/db';
-import { addIncome, updateIncome, archiveIncome } from '@/data/repository';
+import { addIncome, updateIncome, archiveIncome, getIncome } from '@/data/repository';
 import { toCents, formatCents } from '@/utils/money';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
@@ -23,7 +22,8 @@ export default function IncomeFormScreen() {
 
   useEffect(() => {
     if (!incomeId) return;
-    collections.income.find(incomeId).then((row) => {
+    getIncome(incomeId).then((row) => {
+      if (!row) return;
       setLabel(row.label);
       setCategory(row.category);
       setAmount(formatCents(row.amountCents));

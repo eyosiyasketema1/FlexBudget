@@ -1,6 +1,6 @@
 # FlexBudget
 
-Local-first personal flex-budgeting app. React Native + TypeScript, on-device SQLite (WatermelonDB). No server, no account — all data stays on the device.
+Local-first personal flex-budgeting app. React Native (Expo) + TypeScript, on-device SQLite via expo-sqlite — runs in Expo Go, no native build. No server, no account — all data stays on the device.
 
 Built phase-by-phase from `FlexBudget-Build-Plan.md`.
 
@@ -15,25 +15,26 @@ Built phase-by-phase from `FlexBudget-Build-Plan.md`.
 | 4 | Smart rollover, predictive runway, 50/30/20 benchmark overlay, encrypted backups | ✅ Done |
 | 5 | Hardening (edge-case tests + guards), accessibility, backup round-trip test | ✅ Done |
 
-## Run it
+## Run it (Expo Go — no native build needed)
 
-This is real source. To launch on a device/simulator you need the native toolchain (Xcode / Android Studio) since WatermelonDB and React Native require it.
+Storage uses **expo-sqlite**, which runs in the Expo Go app, so you can launch it on a real phone by scanning a QR code — no Xcode/Android Studio.
 
 ```bash
 npm install
-npx expo prebuild          # generates native projects (WatermelonDB needs a dev build)
-npm run ios                # or: npm run android
-npm test                   # runs the calculation-engine unit tests
-npm run typecheck          # tsc --noEmit
+npx expo start            # press a, scan the QR with Expo Go (Android), or i for iOS
+npm test                  # runs the unit tests (calc engine + backup codec)
+npm run typecheck         # tsc --noEmit
 ```
 
-> WatermelonDB uses native SQLite + JSI, so plain Expo Go won't work — use a dev build (`expo prebuild` + run). For a quick no-native spike you can swap the adapter in `src/db/index.ts` to `expo-sqlite`.
+On your phone: install **Expo Go** from the Play Store, make sure the phone and computer are on the same Wi-Fi, then scan the QR code printed by `npx expo start`. The app seeds a sample month on first launch.
+
+> Data is stored in a local SQLite database on the device (`flexbudget.db`). Nothing is sent to a server.
 
 ## Architecture at a glance
 
 ```
 src/
-  db/            WatermelonDB: schema (v2), migrations, models, seed, local SQLite adapter
+  db/            expo-sqlite: connection + DDL (sqlite.ts), ids, change events, seed
   calc/          Pure calculation engine + types + tests (no DB, no React — fully unit-tested)
   data/          Bridge layer: snapshot loader, useMonth/useHistory hooks, repository, backup
   state/         ActiveMonth context (which month is being viewed)
@@ -44,10 +45,11 @@ src/
 ```
 
 ### Core design rules
+- **Local SQLite** via expo-sqlite (`src/db/sqlite.ts`). Tables created with `CREATE TABLE IF NOT EXISTS`; money as INTEGER cents, booleans as 0/1.
 - **Money is always integer cents.** Conversion/formatting is isolated to `utils/money.ts`. No float arithmetic on amounts.
 - **Months are isolated** by a `month_year` string (`"2026-06"`) on every row. Switching months filters by that key.
 - **Delete = archive.** Nothing user-facing is hard-deleted; `is_archived` keeps history intact and totals exclude archived rows. A true purge lives only in Settings (restore is offered there).
-- **Live totals fall out of the data.** `useMonth` observes every relevant table; any change re-runs the pure engine — the real-time calculation matrix with zero manual recompute.
+- **Live totals fall out of the data.** A tiny event bus (`src/db/events.ts`) replaces DB observables: every write calls `notifyChange()`, and `useMonth`/`useHistory` re-query and re-run the pure engine — the real-time calculation matrix with zero manual recompute.
 - **The calc engine is decoupled** from the DB so it stays pure and testable (`npm test`).
 
 ## The calculation matrix (Section 3 of the spec)

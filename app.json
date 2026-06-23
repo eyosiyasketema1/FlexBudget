@@ -16,9 +16,6 @@
     "android": {
       "package": "com.flexbudget.app"
     },
-    "plugins": [
-      "expo-file-system"
-    ],
     "jsEngine": "hermes"
   }
 }

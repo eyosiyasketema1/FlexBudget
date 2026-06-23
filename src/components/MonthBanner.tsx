@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { ScrollView, Pressable, Text, View } from 'react-native';
-import { collections } from '@/db';
+import { onDataChange } from '@/db';
+import { listMonths } from '@/data/snapshot';
 import { colors, radius, spacing, font } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { formatMonthShort, shiftMonth, currentMonthYear } from '@/utils/date';
@@ -12,7 +13,7 @@ export default function MonthBanner() {
   const [months, setMonths] = useState<{ monthYear: string; locked: boolean }[]>([]);
 
   const refresh = useCallback(async () => {
-    const rows = await collections.months.query().fetch();
+    const rows = await listMonths();
     const map = new Map(rows.map((m) => [m.monthYear, m.isLocked]));
 
     // Build a continuous range so the banner reads like a calendar, even for
@@ -38,10 +39,8 @@ export default function MonthBanner() {
   }, [activeMonth]);
 
   useEffect(() => {
-    const sub = collections.months.query().observe().subscribe(() => {
-      void refresh();
-    });
-    return () => sub.unsubscribe();
+    void refresh();
+    return onDataChange(refresh);
   }, [refresh]);
 
   return (

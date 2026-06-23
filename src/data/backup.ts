@@ -1,39 +1,22 @@
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
-import { database, collections } from '@/db';
+import { all, getDb, notifyChange } from '@/db';
 import { buildPayload, encryptPayload, decryptPayload, BackupData } from './backupCodec';
 
-// Encrypted local backup. Serializes the whole on-device database to JSON,
-// AES-encrypts it with a user passphrase, and writes a file the user can move
+// Encrypted local backup. Serializes the whole on-device SQLite database to
+// JSON, AES-encrypts it with a passphrase, and writes a file the user can move
 // to another device via the share sheet. No server is involved. The pure
 // encrypt/decrypt/validate logic lives in backupCodec.ts (unit-tested).
 
 async function serializeAll(): Promise<BackupData> {
   const [months, income, categories, items] = await Promise.all([
-    collections.months.query().fetch(),
-    collections.income.query().fetch(),
-    collections.categories.query().fetch(),
-    collections.items.query().fetch(),
+    all<any>('SELECT * FROM months'),
+    all<any>('SELECT * FROM income_items'),
+    all<any>('SELECT * FROM expense_categories'),
+    all<any>('SELECT * FROM expense_items'),
   ]);
-  return {
-    months: months.map((m) => ({ monthYear: m.monthYear, isLocked: m.isLocked })),
-    income: income.map((i) => ({
-      monthYear: i.monthYear, label: i.label, category: i.category,
-      amountCents: i.amountCents, isArchived: i.isArchived,
-    })),
-    categories: categories.map((c) => ({
-      id: c.id, monthYear: c.monthYear, name: c.name,
-      allocationCapPercent: c.allocationCapPercent, bucket: c.bucket,
-      isArchived: c.isArchived, sortOrder: c.sortOrder,
-    })),
-    items: items.map((it) => ({
-      categoryId: it.categoryId, monthYear: it.monthYear, name: it.name,
-      budgetCapCents: it.budgetCapCents, actualSpentCents: it.actualSpentCents,
-      rolloverEnabled: it.rolloverEnabled, rolloverCents: it.rolloverCents,
-      isArchived: it.isArchived, sortOrder: it.sortOrder,
-    })),
-  };
+  return { months, income, categories, items };
 }
 
 /** Export an AES-encrypted backup file and open the share sheet. */
@@ -56,41 +39,38 @@ export async function exportEncryptedBackup(passphrase: string): Promise<string>
 export async function importEncryptedBackup(fileUri: string, passphrase: string): Promise<void> {
   const cipher = await FileSystem.readAsStringAsync(fileUri, { encoding: FileSystem.EncodingType.UTF8 });
   const payload = decryptPayload(cipher, passphrase);
+  const d = payload.data as BackupData;
 
-  await database.write(async () => {
-    await database.unsafeResetDatabase();
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    await db.execAsync(
+      'DELETE FROM expense_items; DELETE FROM expense_categories; DELETE FROM income_items; DELETE FROM months;',
+    );
+
+    for (const m of d.months as any[]) {
+      await db.runAsync('INSERT INTO months (month_year, is_locked, created_at) VALUES (?, ?, ?)', [
+        m.month_year, m.is_locked ?? 0, m.created_at ?? Date.now(),
+      ]);
+    }
+    for (const i of d.income as any[]) {
+      await db.runAsync(
+        'INSERT INTO income_items (id, month_year, label, category, amount_cents, is_archived, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [i.id, i.month_year, i.label, i.category, i.amount_cents, i.is_archived ?? 0, i.created_at ?? Date.now()],
+      );
+    }
+    for (const c of d.categories as any[]) {
+      await db.runAsync(
+        'INSERT INTO expense_categories (id, month_year, name, allocation_cap_percent, bucket, is_archived, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [c.id, c.month_year, c.name, c.allocation_cap_percent ?? null, c.bucket ?? null, c.is_archived ?? 0, c.sort_order ?? 0, c.created_at ?? Date.now()],
+      );
+    }
+    for (const it of d.items as any[]) {
+      await db.runAsync(
+        'INSERT INTO expense_items (id, category_id, month_year, name, budget_cap_cents, actual_spent_cents, rollover_enabled, rollover_cents, is_archived, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [it.id, it.category_id, it.month_year, it.name, it.budget_cap_cents, it.actual_spent_cents, it.rollover_enabled ?? 0, it.rollover_cents ?? 0, it.is_archived ?? 0, it.sort_order ?? 0, it.created_at ?? Date.now()],
+      );
+    }
   });
 
-  // Rebuild, preserving category→item links via a temp-id map.
-  const catIdMap = new Map<string, string>();
-  await database.write(async () => {
-    for (const m of payload.data.months as any[]) {
-      await collections.months.create((row) => {
-        row.monthYear = m.monthYear; row.isLocked = !!m.isLocked;
-      });
-    }
-    for (const i of payload.data.income as any[]) {
-      await collections.income.create((row) => {
-        row.monthYear = i.monthYear; row.label = i.label; row.category = i.category;
-        row.amountCents = i.amountCents; row.isArchived = !!i.isArchived;
-      });
-    }
-    for (const c of payload.data.categories as any[]) {
-      const created = await collections.categories.create((row) => {
-        row.monthYear = c.monthYear; row.name = c.name;
-        row.allocationCapPercent = c.allocationCapPercent; row.bucket = c.bucket ?? null;
-        row.isArchived = !!c.isArchived; row.sortOrder = c.sortOrder;
-      });
-      catIdMap.set(c.id, created.id);
-    }
-    for (const it of payload.data.items as any[]) {
-      await collections.items.create((row) => {
-        row.categoryId = catIdMap.get(it.categoryId) ?? it.categoryId;
-        row.monthYear = it.monthYear; row.name = it.name;
-        row.budgetCapCents = it.budgetCapCents; row.actualSpentCents = it.actualSpentCents;
-        row.rolloverEnabled = !!it.rolloverEnabled; row.rolloverCents = it.rolloverCents ?? 0;
-        row.isArchived = !!it.isArchived; row.sortOrder = it.sortOrder;
-      });
-    }
-  });
+  notifyChange();
 }

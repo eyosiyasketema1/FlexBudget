@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
-import { Q } from '@nozbe/watermelondb';
 import * as DocumentPicker from 'expo-document-picker';
 
 import Card from '@/components/Card';
@@ -8,7 +7,8 @@ import Field from '@/components/Field';
 import Button from '@/components/Button';
 import { colors, spacing, font } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
-import { collections, database } from '@/db';
+import { onDataChange } from '@/db';
+import { listArchived, restoreItem, restoreCategory } from '@/data/repository';
 import { formatMonthLabel } from '@/utils/date';
 import { exportEncryptedBackup, importEncryptedBackup } from '@/data/backup';
 
@@ -22,39 +22,23 @@ export default function SettingsScreen() {
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
-    const [items, cats] = await Promise.all([
-      collections.items
-        .query(Q.where('month_year', activeMonth), Q.where('is_archived', true))
-        .fetch(),
-      collections.categories
-        .query(Q.where('month_year', activeMonth), Q.where('is_archived', true))
-        .fetch(),
-    ]);
-    setArchivedItems(items.map((i) => ({ id: i.id, name: i.name })));
-    setArchivedCats(cats.map((c) => ({ id: c.id, name: c.name })));
+    const { items, categories } = await listArchived(activeMonth);
+    setArchivedItems(items);
+    setArchivedCats(categories);
   }, [activeMonth]);
 
   useEffect(() => {
     void refresh();
+    return onDataChange(refresh);
   }, [refresh]);
 
-  const restoreItem = async (id: string) => {
-    const row = await collections.items.find(id);
-    await database.write(async () => {
-      await row.update((i) => {
-        i.isArchived = false;
-      });
-    });
+  const onRestoreItem = async (id: string) => {
+    await restoreItem(id);
     void refresh();
   };
 
-  const restoreCategory = async (id: string) => {
-    const row = await collections.categories.find(id);
-    await database.write(async () => {
-      await row.update((c) => {
-        c.isArchived = false;
-      });
-    });
+  const onRestoreCategory = async (id: string) => {
+    await restoreCategory(id);
     void refresh();
   };
 
@@ -120,7 +104,7 @@ export default function SettingsScreen() {
       {archivedCats.map((c) => (
         <Card key={c.id} style={{ marginBottom: spacing.sm, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={{ color: colors.text }}>{c.name} <Text style={{ color: colors.textMuted }}>(category)</Text></Text>
-          <Pressable onPress={() => restoreCategory(c.id)}>
+          <Pressable onPress={() => onRestoreCategory(c.id)}>
             <Text style={{ color: colors.primary, fontWeight: '600' }}>Restore</Text>
           </Pressable>
         </Card>
@@ -129,7 +113,7 @@ export default function SettingsScreen() {
       {archivedItems.map((it) => (
         <Card key={it.id} style={{ marginBottom: spacing.sm, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={{ color: colors.text }}>{it.name}</Text>
-          <Pressable onPress={() => restoreItem(it.id)}>
+          <Pressable onPress={() => onRestoreItem(it.id)}>
             <Text style={{ color: colors.primary, fontWeight: '600' }}>Restore</Text>
           </Pressable>
         </Card>

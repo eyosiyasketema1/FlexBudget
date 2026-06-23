@@ -1,132 +1,133 @@
-import { Q } from '@nozbe/watermelondb';
-import { database, collections } from '@/db';
+import { all, first, run, getDb, makeId, bool, toInt, notifyChange } from '@/db';
 import { nextMonth } from '@/utils/date';
 import { rolloverCarry } from '@/calc/engine';
 import type { Bucket } from '@/calc/types';
 
-// All writes go through here so behavior (archiving, locking, month-copy) is
-// consistent and transactional. Nothing hard-deletes user financial data.
+// All writes go through here so behavior (archiving, locking, month-copy,
+// rollover) is consistent. Nothing hard-deletes user financial data. Every
+// mutation calls notifyChange() so observing hooks refresh.
 
 async function assertUnlocked(monthYear: string): Promise<void> {
-  const month = await collections.months
-    .query(Q.where('month_year', monthYear))
-    .fetch();
-  if (month[0]?.isLocked) {
+  const row = await first<{ is_locked: number }>(
+    'SELECT is_locked FROM months WHERE month_year = ?',
+    [monthYear],
+  );
+  if (bool(row?.is_locked)) {
     throw new Error(`Month ${monthYear} is locked and cannot be edited.`);
   }
 }
 
 export async function ensureMonth(monthYear: string): Promise<void> {
-  const count = await collections.months
-    .query(Q.where('month_year', monthYear))
-    .fetchCount();
-  if (count > 0) return;
-  await database.write(async () => {
-    await collections.months.create((m) => {
-      m.monthYear = monthYear;
-      m.isLocked = false;
-    });
-  });
+  const existing = await first('SELECT month_year FROM months WHERE month_year = ?', [monthYear]);
+  if (existing) return;
+  await run('INSERT INTO months (month_year, is_locked, created_at) VALUES (?, 0, ?)', [
+    monthYear,
+    Date.now(),
+  ]);
+  notifyChange();
 }
 
-// ── Income ────────────────────────────────────────────────────────────────
+// ── Single-row getters (used by forms) ──────────────────────────────────────
+export interface IncomeRowDto {
+  id: string; label: string; category: string; amountCents: number; monthYear: string;
+}
+export async function getIncome(id: string): Promise<IncomeRowDto | null> {
+  const r = await first<any>('SELECT * FROM income_items WHERE id = ?', [id]);
+  return r ? { id: r.id, label: r.label, category: r.category, amountCents: r.amount_cents, monthYear: r.month_year } : null;
+}
+
+export interface CategoryRowDto {
+  id: string; name: string; allocationCapPercent: number | null; bucket: Bucket | null; monthYear: string;
+}
+export async function getCategory(id: string): Promise<CategoryRowDto | null> {
+  const r = await first<any>('SELECT * FROM expense_categories WHERE id = ?', [id]);
+  return r ? { id: r.id, name: r.name, allocationCapPercent: r.allocation_cap_percent, bucket: r.bucket ?? null, monthYear: r.month_year } : null;
+}
+
+export interface ItemRowDto {
+  id: string; name: string; budgetCapCents: number; actualSpentCents: number;
+  rolloverEnabled: boolean; rolloverCents: number; monthYear: string;
+}
+export async function getItem(id: string): Promise<ItemRowDto | null> {
+  const r = await first<any>('SELECT * FROM expense_items WHERE id = ?', [id]);
+  return r ? {
+    id: r.id, name: r.name, budgetCapCents: r.budget_cap_cents, actualSpentCents: r.actual_spent_cents,
+    rolloverEnabled: bool(r.rollover_enabled), rolloverCents: r.rollover_cents, monthYear: r.month_year,
+  } : null;
+}
+
+// ── Income ──────────────────────────────────────────────────────────────────
 export async function addIncome(
   monthYear: string,
   data: { label: string; category: string; amountCents: number },
 ) {
   await assertUnlocked(monthYear);
-  await database.write(async () => {
-    await collections.income.create((i) => {
-      i.monthYear = monthYear;
-      i.label = data.label;
-      i.category = data.category;
-      i.amountCents = data.amountCents;
-      i.isArchived = false;
-    });
-  });
+  await run(
+    'INSERT INTO income_items (id, month_year, label, category, amount_cents, is_archived, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)',
+    [makeId('INC'), monthYear, data.label, data.category, data.amountCents, Date.now()],
+  );
+  notifyChange();
 }
 
 export async function updateIncome(
   id: string,
   data: { label: string; category: string; amountCents: number },
 ) {
-  const row = await collections.income.find(id);
+  const row = await getIncome(id);
+  if (!row) return;
   await assertUnlocked(row.monthYear);
-  await database.write(async () => {
-    await row.update((i) => {
-      i.label = data.label;
-      i.category = data.category;
-      i.amountCents = data.amountCents;
-    });
-  });
+  await run('UPDATE income_items SET label = ?, category = ?, amount_cents = ? WHERE id = ?', [
+    data.label, data.category, data.amountCents, id,
+  ]);
+  notifyChange();
 }
 
 export async function archiveIncome(id: string) {
-  const row = await collections.income.find(id);
+  const row = await getIncome(id);
+  if (!row) return;
   await assertUnlocked(row.monthYear);
-  await database.write(async () => {
-    await row.update((i) => {
-      i.isArchived = true;
-    });
-  });
+  await run('UPDATE income_items SET is_archived = 1 WHERE id = ?', [id]);
+  notifyChange();
 }
 
-// ── Categories ──────────────────────────────────────────────────────────
+// ── Categories ──────────────────────────────────────────────────────────────
 export async function addCategory(
   monthYear: string,
   data: { name: string; allocationCapPercent: number | null; bucket?: Bucket | null },
 ) {
   await assertUnlocked(monthYear);
-  const count = await collections.categories
-    .query(Q.where('month_year', monthYear))
-    .fetchCount();
-  await database.write(async () => {
-    await collections.categories.create((c) => {
-      c.monthYear = monthYear;
-      c.name = data.name;
-      c.allocationCapPercent = data.allocationCapPercent;
-      c.bucket = data.bucket ?? null;
-      c.isArchived = false;
-      c.sortOrder = count;
-    });
-  });
+  const c = await first<{ n: number }>(
+    'SELECT COUNT(*) AS n FROM expense_categories WHERE month_year = ?',
+    [monthYear],
+  );
+  await run(
+    'INSERT INTO expense_categories (id, month_year, name, allocation_cap_percent, bucket, is_archived, sort_order, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)',
+    [makeId('CAT'), monthYear, data.name, data.allocationCapPercent, data.bucket ?? null, c?.n ?? 0, Date.now()],
+  );
+  notifyChange();
 }
 
 export async function updateCategory(
   id: string,
   data: { name: string; allocationCapPercent: number | null; bucket?: Bucket | null },
 ) {
-  const row = await collections.categories.find(id);
+  const row = await getCategory(id);
+  if (!row) return;
   await assertUnlocked(row.monthYear);
-  await database.write(async () => {
-    await row.update((c) => {
-      c.name = data.name;
-      c.allocationCapPercent = data.allocationCapPercent;
-      c.bucket = data.bucket ?? null;
-    });
-  });
+  await run('UPDATE expense_categories SET name = ?, allocation_cap_percent = ?, bucket = ? WHERE id = ?', [
+    data.name, data.allocationCapPercent, data.bucket ?? null, id,
+  ]);
+  notifyChange();
 }
 
 /** Archive a category and all its items — history stays intact. */
 export async function archiveCategory(id: string) {
-  const cat = await collections.categories.find(id);
-  await assertUnlocked(cat.monthYear);
-  const items = await collections.items
-    .query(Q.where('category_id', id))
-    .fetch();
-  await database.write(async () => {
-    const batch = [
-      cat.prepareUpdate((c) => {
-        c.isArchived = true;
-      }),
-      ...items.map((it) =>
-        it.prepareUpdate((i) => {
-          i.isArchived = true;
-        }),
-      ),
-    ];
-    await database.batch(...batch);
-  });
+  const row = await getCategory(id);
+  if (!row) return;
+  await assertUnlocked(row.monthYear);
+  await run('UPDATE expense_categories SET is_archived = 1 WHERE id = ?', [id]);
+  await run('UPDATE expense_items SET is_archived = 1 WHERE category_id = ?', [id]);
+  notifyChange();
 }
 
 // ── Items ─────────────────────────────────────────────────────────────────
@@ -136,166 +137,152 @@ export async function addItem(
   data: { name: string; budgetCapCents: number; actualSpentCents: number; rolloverEnabled?: boolean },
 ) {
   await assertUnlocked(monthYear);
-  const count = await collections.items
-    .query(Q.where('category_id', categoryId))
-    .fetchCount();
-  await database.write(async () => {
-    await collections.items.create((it) => {
-      it.categoryId = categoryId;
-      it.monthYear = monthYear;
-      it.name = data.name;
-      it.budgetCapCents = data.budgetCapCents;
-      it.actualSpentCents = data.actualSpentCents;
-      it.rolloverEnabled = data.rolloverEnabled ?? false;
-      it.rolloverCents = 0;
-      it.isArchived = false;
-      it.sortOrder = count;
-    });
-  });
+  const c = await first<{ n: number }>(
+    'SELECT COUNT(*) AS n FROM expense_items WHERE category_id = ?',
+    [categoryId],
+  );
+  await run(
+    'INSERT INTO expense_items (id, category_id, month_year, name, budget_cap_cents, actual_spent_cents, rollover_enabled, rollover_cents, is_archived, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)',
+    [makeId('E'), categoryId, monthYear, data.name, data.budgetCapCents, data.actualSpentCents, toInt(!!data.rolloverEnabled), c?.n ?? 0, Date.now()],
+  );
+  notifyChange();
 }
 
 export async function updateItem(
   id: string,
   data: { name: string; budgetCapCents: number; actualSpentCents: number; rolloverEnabled?: boolean },
 ) {
-  const row = await collections.items.find(id);
+  const row = await getItem(id);
+  if (!row) return;
   await assertUnlocked(row.monthYear);
-  await database.write(async () => {
-    await row.update((it) => {
-      it.name = data.name;
-      it.budgetCapCents = data.budgetCapCents;
-      it.actualSpentCents = data.actualSpentCents;
-      if (data.rolloverEnabled !== undefined) it.rolloverEnabled = data.rolloverEnabled;
-    });
-  });
+  if (data.rolloverEnabled !== undefined) {
+    await run(
+      'UPDATE expense_items SET name = ?, budget_cap_cents = ?, actual_spent_cents = ?, rollover_enabled = ? WHERE id = ?',
+      [data.name, data.budgetCapCents, data.actualSpentCents, toInt(data.rolloverEnabled), id],
+    );
+  } else {
+    await run('UPDATE expense_items SET name = ?, budget_cap_cents = ?, actual_spent_cents = ? WHERE id = ?', [
+      data.name, data.budgetCapCents, data.actualSpentCents, id,
+    ]);
+  }
+  notifyChange();
 }
 
-/** Quick inline edit of just the actual-spent figure (the common case). */
+/** Quick inline edit of just the actual-spent figure. */
 export async function setActualSpent(id: string, actualSpentCents: number) {
-  const row = await collections.items.find(id);
+  const row = await getItem(id);
+  if (!row) return;
   await assertUnlocked(row.monthYear);
-  await database.write(async () => {
-    await row.update((it) => {
-      it.actualSpentCents = actualSpentCents;
-    });
-  });
+  await run('UPDATE expense_items SET actual_spent_cents = ? WHERE id = ?', [actualSpentCents, id]);
+  notifyChange();
 }
 
 export async function archiveItem(id: string) {
-  const row = await collections.items.find(id);
+  const row = await getItem(id);
+  if (!row) return;
   await assertUnlocked(row.monthYear);
-  await database.write(async () => {
-    await row.update((it) => {
-      it.isArchived = true;
-    });
-  });
+  await run('UPDATE expense_items SET is_archived = 1 WHERE id = ?', [id]);
+  notifyChange();
 }
 
-// ── Month lifecycle (Phase 2) ──────────────────────────────────────────────
+// ── Archived management (Settings) ─────────────────────────────────────────
+export async function listArchived(monthYear: string): Promise<{
+  items: { id: string; name: string }[];
+  categories: { id: string; name: string }[];
+}> {
+  const [items, categories] = await Promise.all([
+    all<{ id: string; name: string }>(
+      'SELECT id, name FROM expense_items WHERE month_year = ? AND is_archived = 1',
+      [monthYear],
+    ),
+    all<{ id: string; name: string }>(
+      'SELECT id, name FROM expense_categories WHERE month_year = ? AND is_archived = 1',
+      [monthYear],
+    ),
+  ]);
+  return { items, categories };
+}
 
-/** Lock a month read-only ("close out"). */
+export async function restoreItem(id: string) {
+  await run('UPDATE expense_items SET is_archived = 0 WHERE id = ?', [id]);
+  notifyChange();
+}
+
+export async function restoreCategory(id: string) {
+  await run('UPDATE expense_categories SET is_archived = 0 WHERE id = ?', [id]);
+  notifyChange();
+}
+
+// ── Month lifecycle ─────────────────────────────────────────────────────────
 export async function lockMonth(monthYear: string) {
-  const month = await collections.months
-    .query(Q.where('month_year', monthYear))
-    .fetch();
-  if (!month[0]) return;
-  await database.write(async () => {
-    await month[0].update((m) => {
-      m.isLocked = true;
-    });
-  });
+  await run('UPDATE months SET is_locked = 1 WHERE month_year = ?', [monthYear]);
+  notifyChange();
 }
 
 export async function unlockMonth(monthYear: string) {
-  const month = await collections.months
-    .query(Q.where('month_year', monthYear))
-    .fetch();
-  if (!month[0]) return;
-  await database.write(async () => {
-    await month[0].update((m) => {
-      m.isLocked = false;
-    });
-  });
+  await run('UPDATE months SET is_locked = 0 WHERE month_year = ?', [monthYear]);
+  notifyChange();
 }
 
 /**
- * Copy the baseline of `fromMonth` into `toMonth` (defaults to the next month):
+ * Copy the baseline of `fromMonth` into `toMonth` (defaults to next month):
  * duplicates non-archived categories + items, keeps budget caps, RESETS actuals
- * to 0. Income labels/categories/amounts are copied as a starting point.
- * Returns the created target month_year.
+ * to 0, and carries smart-rollover credits/debts forward. Income is copied as a
+ * starting point. Returns the created target month_year.
  */
 export async function copyBaselineToNewMonth(
   fromMonth: string,
   toMonth: string = nextMonth(fromMonth),
 ): Promise<string> {
-  const exists = await collections.months
-    .query(Q.where('month_year', toMonth))
-    .fetchCount();
-  if (exists > 0) {
-    throw new Error(`Month ${toMonth} already exists.`);
-  }
+  const exists = await first('SELECT month_year FROM months WHERE month_year = ?', [toMonth]);
+  if (exists) throw new Error(`Month ${toMonth} already exists.`);
 
-  const [income, categories] = await Promise.all([
-    collections.income
-      .query(Q.where('month_year', fromMonth), Q.where('is_archived', false))
-      .fetch(),
-    collections.categories
-      .query(Q.where('month_year', fromMonth), Q.where('is_archived', false))
-      .fetch(),
-  ]);
+  const income = await all<any>(
+    'SELECT * FROM income_items WHERE month_year = ? AND is_archived = 0',
+    [fromMonth],
+  );
+  const categories = await all<any>(
+    'SELECT * FROM expense_categories WHERE month_year = ? AND is_archived = 0 ORDER BY sort_order ASC',
+    [fromMonth],
+  );
 
-  await database.write(async () => {
-    await collections.months.create((m) => {
-      m.monthYear = toMonth;
-      m.isLocked = false;
-    });
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('INSERT INTO months (month_year, is_locked, created_at) VALUES (?, 0, ?)', [
+      toMonth, Date.now(),
+    ]);
 
     for (const inc of income) {
-      await collections.income.create((i) => {
-        i.monthYear = toMonth;
-        i.label = inc.label;
-        i.category = inc.category;
-        i.amountCents = inc.amountCents;
-        i.isArchived = false;
-      });
+      await db.runAsync(
+        'INSERT INTO income_items (id, month_year, label, category, amount_cents, is_archived, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)',
+        [makeId('INC'), toMonth, inc.label, inc.category, inc.amount_cents, Date.now()],
+      );
     }
 
     for (const cat of categories) {
-      const newCat = await collections.categories.create((c) => {
-        c.monthYear = toMonth;
-        c.name = cat.name;
-        c.allocationCapPercent = cat.allocationCapPercent;
-        c.isArchived = false;
-        c.sortOrder = cat.sortOrder;
-      });
-      const items = await collections.items
-        .query(Q.where('category_id', cat.id), Q.where('is_archived', false))
-        .fetch();
+      const newCatId = makeId('CAT');
+      await db.runAsync(
+        'INSERT INTO expense_categories (id, month_year, name, allocation_cap_percent, bucket, is_archived, sort_order, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)',
+        [newCatId, toMonth, cat.name, cat.allocation_cap_percent, cat.bucket ?? null, cat.sort_order, Date.now()],
+      );
+      const items = await db.getAllAsync<any>(
+        'SELECT * FROM expense_items WHERE category_id = ? AND is_archived = 0 ORDER BY sort_order ASC',
+        [cat.id],
+      );
       for (const it of items) {
-        // Smart rollover: opt-in items carry their unspent (or overspend)
-        // into the new month as a starting credit/debt.
         const carry = rolloverCarry({
-          id: it.id,
-          name: it.name,
-          budgetCapCents: it.budgetCapCents,
-          actualSpentCents: it.actualSpentCents,
-          rolloverEnabled: it.rolloverEnabled,
-          rolloverCents: it.rolloverCents,
+          id: it.id, name: it.name,
+          budgetCapCents: it.budget_cap_cents, actualSpentCents: it.actual_spent_cents,
+          rolloverEnabled: bool(it.rollover_enabled), rolloverCents: it.rollover_cents,
         });
-        await collections.items.create((ni) => {
-          ni.categoryId = newCat.id;
-          ni.monthYear = toMonth;
-          ni.name = it.name;
-          ni.budgetCapCents = it.budgetCapCents;
-          ni.actualSpentCents = 0; // reset actuals for the fresh month
-          ni.rolloverEnabled = it.rolloverEnabled;
-          ni.rolloverCents = carry;
-          ni.isArchived = false;
-          ni.sortOrder = it.sortOrder;
-        });
+        await db.runAsync(
+          'INSERT INTO expense_items (id, category_id, month_year, name, budget_cap_cents, actual_spent_cents, rollover_enabled, rollover_cents, is_archived, sort_order, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 0, ?, ?)',
+          [makeId('E'), newCatId, toMonth, it.name, it.budget_cap_cents, toInt(bool(it.rollover_enabled)), carry, it.sort_order, Date.now()],
+        );
       }
     }
   });
 
+  notifyChange();
   return toMonth;
 }
