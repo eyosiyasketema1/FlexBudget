@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "FlexBudget",
+    "slug": "flexbudget",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "splash": {
+      "backgroundColor": "#0E1116"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.flexbudget.app"
+    },
+    "android": {
+      "package": "com.flexbudget.app"
+    },
+    "plugins": [
+      "expo-file-system"
+    ],
+    "jsEngine": "hermes"
+  }
+}
