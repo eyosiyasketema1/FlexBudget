@@ -1,6 +1,6 @@
 # FlexBudget
 
-Local-first personal flex-budgeting app. React Native (Expo) + TypeScript, on-device SQLite via expo-sqlite — runs in Expo Go, no native build. No server, no account — all data stays on the device.
+Local-first personal flex-budgeting app. Expo SDK 54 (React Native + TypeScript), on-device SQLite via expo-sqlite — runs in Expo Go, no native build. No server, no account — all data stays on the device.
 
 Built phase-by-phase from `FlexBudget-Build-Plan.md`.
 
@@ -15,20 +15,25 @@ Built phase-by-phase from `FlexBudget-Build-Plan.md`.
 | 4 | Smart rollover, predictive runway, 50/30/20 benchmark overlay, encrypted backups | ✅ Done |
 | 5 | Hardening (edge-case tests + guards), accessibility, backup round-trip test | ✅ Done |
 
-## Run it (Expo Go — no native build needed)
+## Run it (Expo SDK 54, Expo Go — no native build needed)
 
 Storage uses **expo-sqlite**, which runs in the Expo Go app, so you can launch it on a real phone by scanning a QR code — no Xcode/Android Studio.
 
 ```bash
 npm install
-npx expo start            # press a, scan the QR with Expo Go (Android), or i for iOS
+npx expo install --fix    # pins every package to the exact SDK 54 versions
+npx expo start            # press a for Android, i for iOS, or scan the QR with Expo Go
 npm test                  # runs the unit tests (calc engine + backup codec)
 npm run typecheck         # tsc --noEmit
 ```
 
+`npx expo install --fix` is the authoritative step — it reads the installed Expo SDK and corrects React, React Native, and every `expo-*` package to matching versions. Run it once after `npm install`.
+
 On your phone: install **Expo Go** from the Play Store, make sure the phone and computer are on the same Wi-Fi, then scan the QR code printed by `npx expo start`. The app seeds a sample month on first launch.
 
-> Data is stored in a local SQLite database on the device (`flexbudget.db`). Nothing is sent to a server.
+If Metro errors with `EMFILE: too many open files`, install Watchman (`brew install watchman`) or run `ulimit -n 65536` in the same terminal first.
+
+> Data is stored in a local SQLite database on the device (`flexbudget.db`). Nothing is sent to a server. The encrypted-backup feature uses `expo-file-system/legacy` (SDK 54 moved the classic file API there).
 
 ## Architecture at a glance
 

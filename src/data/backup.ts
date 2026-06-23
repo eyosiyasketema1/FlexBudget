@@ -1,4 +1,6 @@
-import * as FileSystem from 'expo-file-system';
+// SDK 54 promoted a new File/Paths API to the default export; the classic
+// document-directory + read/write helpers live under /legacy.
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 
 import { all, getDb, notifyChange } from '@/db';
