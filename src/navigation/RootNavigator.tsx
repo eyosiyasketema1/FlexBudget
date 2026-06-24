@@ -6,6 +6,7 @@ import { House, Wallet, ArrowLeftRight, Sparkles, Settings2 } from 'lucide-react
 import type { LucideIcon } from 'lucide-react-native';
 
 import { colors } from '@/theme/theme';
+import FloatingTabBar from '@/navigation/FloatingTabBar';
 import TimelineScreen from '@/screens/TimelineScreen';
 import BudgetScreen from '@/screens/BudgetScreen';
 import ComparisonScreen from '@/screens/ComparisonScreen';
@@ -46,19 +47,8 @@ function tabIcon(Comp: LucideIcon) {
 function Tabs() {
   return (
     <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          height: 64,
-          paddingTop: 8,
-          paddingBottom: 10,
-        },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarActiveTintColor: colors.ink,
-        tabBarInactiveTintColor: colors.textFaint,
-      }}
+      tabBar={(props) => <FloatingTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
       <Tab.Screen name="Timeline" component={TimelineScreen} options={{ title: 'Home', tabBarIcon: tabIcon(House) }} />
       <Tab.Screen name="Budget" component={BudgetScreen} options={{ tabBarIcon: tabIcon(Wallet) }} />

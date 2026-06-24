@@ -73,20 +73,19 @@ export const font = {
   tracking: { tight: -1, snug: -0.4, normal: 0, wide: 0.4, caps: 1 },
 };
 
-// Very soft elevation — on white we lean on hairlines, not heavy shadows.
+// Cards are flat (no shadow). The only elevated surface is the floating tab
+// bar, which uses a soft lift so it reads as floating over content.
 export const elevation = {
-  card: {
-    shadowColor: '#0B0C0E',
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 1,
-  },
   floating: {
     shadowColor: '#0B0C0E',
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 6,
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
+};
+
+// Bottom clearance so scroll content isn't hidden behind the floating tab bar.
+export const layout = {
+  tabBarSpace: 104,
 };

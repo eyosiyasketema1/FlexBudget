@@ -9,7 +9,7 @@ import Field from '@/components/Field';
 import Button from '@/components/Button';
 import ScreenTitle from '@/components/ScreenTitle';
 import SectionHeader from '@/components/SectionHeader';
-import { colors, spacing, font } from '@/theme/theme';
+import { colors, spacing, font, layout } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { onDataChange } from '@/db';
 import { listArchived, restoreItem, restoreCategory } from '@/data/repository';
@@ -111,7 +111,7 @@ export default function SettingsScreen() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.bg }}
-      contentContainerStyle={{ padding: spacing.lg, paddingTop: insets.top + spacing.lg, paddingBottom: spacing.xxl }}
+      contentContainerStyle={{ padding: spacing.lg, paddingTop: insets.top + spacing.lg, paddingBottom: layout.tabBarSpace }}
     >
       <ScreenTitle title="Settings" icon={Settings2} />
 

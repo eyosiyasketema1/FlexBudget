@@ -9,7 +9,7 @@ import TotalsHeader from '@/components/TotalsHeader';
 import Card from '@/components/Card';
 import Button, { IconButton } from '@/components/Button';
 import SectionHeader from '@/components/SectionHeader';
-import { colors, spacing, font } from '@/theme/theme';
+import { colors, spacing, font, layout } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useMonth } from '@/data/useMonth';
 import { formatCents } from '@/utils/money';
@@ -44,7 +44,7 @@ export default function TimelineScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <MonthBanner />
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: layout.tabBarSpace }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg }}>
           <Text style={{ color: colors.text, fontSize: font.size.xl, fontWeight: '700', letterSpacing: font.tracking.tight }}>
             {formatMonthLabel(activeMonth)}

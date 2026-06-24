@@ -9,7 +9,7 @@ import Card from '@/components/Card';
 import VarianceBadge from '@/components/VarianceBadge';
 import SectionHeader from '@/components/SectionHeader';
 import { IconButton } from '@/components/Button';
-import { colors, spacing, font, radius } from '@/theme/theme';
+import { colors, spacing, font, radius, layout } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useMonth } from '@/data/useMonth';
 import { formatCents } from '@/utils/money';
@@ -48,7 +48,7 @@ export default function BudgetScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <MonthBanner />
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: layout.tabBarSpace }}>
         <SectionHeader
           title="Budget"
           action={!isLocked ? <IconButton icon={Plus} label="Add category" onPress={() => nav.navigate('CategoryForm')} /> : undefined}

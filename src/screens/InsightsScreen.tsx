@@ -5,7 +5,7 @@ import { Sparkles, Gauge, Scale } from 'lucide-react-native';
 import MonthBanner from '@/components/MonthBanner';
 import Card from '@/components/Card';
 import ScreenTitle from '@/components/ScreenTitle';
-import { colors, spacing, font, radius } from '@/theme/theme';
+import { colors, spacing, font, radius, layout } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useMonth } from '@/data/useMonth';
 import { useAllMonthSnapshots } from '@/data/useHistory';
@@ -52,7 +52,7 @@ export default function InsightsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <MonthBanner />
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: layout.tabBarSpace }}>
         <ScreenTitle title="Insights" icon={Sparkles} />
 
         {/* Predictive runway */}
