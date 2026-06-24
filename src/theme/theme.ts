@@ -87,5 +87,5 @@ export const elevation = {
 
 // Bottom clearance so scroll content isn't hidden behind the floating tab bar.
 export const layout = {
-  tabBarSpace: 104,
+  tabBarSpace: 124,
 };

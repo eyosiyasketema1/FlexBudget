@@ -2,14 +2,13 @@ import React from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { House, Wallet, ArrowLeftRight, Sparkles, Settings2 } from 'lucide-react-native';
+import { House, Wallet, Sparkles, Settings2 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
 import { colors } from '@/theme/theme';
 import FloatingTabBar from '@/navigation/FloatingTabBar';
 import TimelineScreen from '@/screens/TimelineScreen';
 import BudgetScreen from '@/screens/BudgetScreen';
-import ComparisonScreen from '@/screens/ComparisonScreen';
 import InsightsScreen from '@/screens/InsightsScreen';
 import SettingsScreen from '@/screens/SettingsScreen';
 import IncomeFormScreen from '@/screens/forms/IncomeFormScreen';
@@ -52,7 +51,6 @@ function Tabs() {
     >
       <Tab.Screen name="Timeline" component={TimelineScreen} options={{ title: 'Home', tabBarIcon: tabIcon(House) }} />
       <Tab.Screen name="Budget" component={BudgetScreen} options={{ tabBarIcon: tabIcon(Wallet) }} />
-      <Tab.Screen name="Comparison" component={ComparisonScreen} options={{ title: 'Compare', tabBarIcon: tabIcon(ArrowLeftRight) }} />
       <Tab.Screen name="Insights" component={InsightsScreen} options={{ tabBarIcon: tabIcon(Sparkles) }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarIcon: tabIcon(Settings2) }} />
     </Tab.Navigator>
