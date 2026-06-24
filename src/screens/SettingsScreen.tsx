@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as DocumentPicker from 'expo-document-picker';
-import { Settings2, RotateCcw, ShieldCheck, Download, Upload, Archive } from 'lucide-react-native';
+import { Settings2, RotateCcw, ShieldCheck, Download, Upload, Archive, Sparkles, ChevronRight } from 'lucide-react-native';
 
 import Card from '@/components/Card';
 import Field from '@/components/Field';
@@ -10,6 +12,7 @@ import Button from '@/components/Button';
 import ScreenTitle from '@/components/ScreenTitle';
 import SectionHeader from '@/components/SectionHeader';
 import { colors, spacing, font, layout } from '@/theme/theme';
+import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { onDataChange } from '@/db';
 import { listArchived, restoreItem, restoreCategory } from '@/data/repository';
@@ -21,6 +24,7 @@ import { exportEncryptedBackup, importEncryptedBackup } from '@/data/backup';
 export default function SettingsScreen() {
   const { activeMonth } = useActiveMonth();
   const insets = useSafeAreaInsets();
+  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [archivedItems, setArchivedItems] = useState<{ id: string; name: string }[]>([]);
   const [archivedCats, setArchivedCats] = useState<{ id: string; name: string }[]>([]);
   const [passphrase, setPassphrase] = useState('');
@@ -114,6 +118,26 @@ export default function SettingsScreen() {
       contentContainerStyle={{ padding: spacing.lg, paddingTop: insets.top + spacing.lg, paddingBottom: layout.tabBarSpace }}
     >
       <ScreenTitle title="Settings" icon={Settings2} />
+
+      <Pressable onPress={() => nav.navigate('Insights')} accessibilityRole="button" accessibilityLabel="Open Insights">
+        <Card style={{ marginBottom: spacing.lg, flexDirection: 'row', alignItems: 'center' }}>
+          <View
+            style={{
+              width: 40, height: 40, borderRadius: 12, marginRight: spacing.md,
+              backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <Sparkles size={20} color={colors.primary} strokeWidth={2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.text, fontWeight: '700', fontSize: font.size.md }}>Insights</Text>
+            <Text style={{ color: colors.textFaint, fontSize: font.size.xs }}>
+              Budget vs actual, trends, runway & 50/30/20
+            </Text>
+          </View>
+          <ChevronRight size={20} color={colors.textFaint} />
+        </Card>
+      </Pressable>
 
       <SectionHeader title={`Archived in ${formatMonthLabel(activeMonth)}`} />
 

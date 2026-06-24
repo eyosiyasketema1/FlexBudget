@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Pressable, Text, Platform } from 'react-native';
+import { View, Pressable, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { colors, radius, font, elevation } from '@/theme/theme';
+import { colors, radius, elevation } from '@/theme/theme';
 
 // A floating, frosted-glass navigation bar — detached from the bottom edge,
 // rounded, blurring the content beneath it. Each tab shows an icon above its
@@ -19,28 +19,32 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
         left: 0,
         right: 0,
         bottom: 0,
-        paddingHorizontal: 18,
+        alignItems: 'center', // hug content + center the pill
         paddingBottom: Math.max(insets.bottom, 8) + 6,
       }}
     >
       <BlurView
-        intensity={Platform.OS === 'android' ? 25 : 40}
+        intensity={Platform.OS === 'android' ? 60 : 50}
         tint="light"
+        // Enables a real blur on Android (otherwise BlurView is just a tint).
+        experimentalBlurMethod="dimezisBlurView"
         style={{
-          borderRadius: 28,
+          borderRadius: radius.pill, // fully rounded
           overflow: 'hidden',
           borderWidth: 1,
-          borderColor: 'rgba(0,0,0,0.06)',
+          borderColor: 'rgba(255,255,255,0.55)',
           ...elevation.floating,
         }}
       >
-        {/* translucent white wash so the glass reads on white content */}
+        {/* light wash so the frosted glass reads over white content */}
         <View
           style={{
             flexDirection: 'row',
-            backgroundColor: 'rgba(255,255,255,0.55)',
-            paddingVertical: 10,
-            paddingHorizontal: 6,
+            alignItems: 'center',
+            backgroundColor: 'rgba(255,255,255,0.35)',
+            paddingVertical: 8,
+            paddingHorizontal: 8,
+            gap: 6,
           }}
         >
           {state.routes.map((route, index) => {
@@ -49,7 +53,6 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
             const Icon = options.tabBarIcon;
             const label =
               typeof options.title === 'string' ? options.title : route.name;
-            const tint = focused ? colors.ink : colors.textMuted;
 
             const onPress = () => {
               const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
@@ -63,10 +66,18 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
                 accessibilityRole="tab"
                 accessibilityState={{ selected: focused }}
                 accessibilityLabel={label}
-                style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 2 }}
+                android_ripple={null}
+                unstable_pressDelay={0}
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: radius.pill,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: focused ? colors.ink : 'transparent',
+                }}
               >
-                {Icon ? Icon({ focused, color: tint, size: 22 }) : null}
-                <Text style={{ color: tint, fontSize: 11, fontWeight: focused ? '700' : '500' }}>{label}</Text>
+                {Icon ? Icon({ focused, color: focused ? colors.onInk : colors.textMuted, size: 23 }) : null}
               </Pressable>
             );
           })}

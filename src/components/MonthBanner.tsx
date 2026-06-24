@@ -10,7 +10,7 @@ import { formatMonthShort, shiftMonth, currentMonthYear } from '@/utils/date';
 
 // Sticky horizontal timeline banner. Shows existing months plus a couple of
 // future planning slots; tap to time-travel. Lock badge marks closed months.
-export default function MonthBanner() {
+export default function MonthBanner({ safeTop = true }: { safeTop?: boolean }) {
   const { activeMonth, setActiveMonth } = useActiveMonth();
   const insets = useSafeAreaInsets();
   const [months, setMonths] = useState<{ monthYear: string; locked: boolean }[]>([]);
@@ -47,7 +47,7 @@ export default function MonthBanner() {
   }, [refresh]);
 
   return (
-    <View style={{ backgroundColor: colors.bg, borderBottomWidth: 1, borderBottomColor: colors.hairline, paddingTop: insets.top }}>
+    <View style={{ backgroundColor: colors.bg, borderBottomWidth: 1, borderBottomColor: colors.hairline, paddingTop: safeTop ? insets.top : 0 }}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

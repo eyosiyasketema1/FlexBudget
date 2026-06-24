@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { House, Wallet, Sparkles, Settings2 } from 'lucide-react-native';
+import { House, Wallet, Settings2 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
 import { colors } from '@/theme/theme';
@@ -17,6 +17,7 @@ import ItemFormScreen from '@/screens/forms/ItemFormScreen';
 
 export type RootStackParamList = {
   Tabs: undefined;
+  Insights: undefined;
   IncomeForm: { incomeId?: string } | undefined;
   CategoryForm: { categoryId?: string } | undefined;
   ItemForm: { categoryId: string; itemId?: string };
@@ -51,7 +52,6 @@ function Tabs() {
     >
       <Tab.Screen name="Timeline" component={TimelineScreen} options={{ title: 'Home', tabBarIcon: tabIcon(House) }} />
       <Tab.Screen name="Budget" component={BudgetScreen} options={{ tabBarIcon: tabIcon(Wallet) }} />
-      <Tab.Screen name="Insights" component={InsightsScreen} options={{ tabBarIcon: tabIcon(Sparkles) }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarIcon: tabIcon(Settings2) }} />
     </Tab.Navigator>
   );
@@ -69,6 +69,7 @@ export default function RootNavigator() {
         }}
       >
         <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
+        <Stack.Screen name="Insights" component={InsightsScreen} options={{ title: 'Insights' }} />
         <Stack.Group screenOptions={{ presentation: 'modal' }}>
           <Stack.Screen name="IncomeForm" component={IncomeFormScreen} options={{ title: 'Income' }} />
           <Stack.Screen name="CategoryForm" component={CategoryFormScreen} options={{ title: 'Category' }} />
