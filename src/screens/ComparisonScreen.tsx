@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
+import { ArrowLeftRight } from 'lucide-react-native';
 
 import MonthBanner from '@/components/MonthBanner';
 import Card from '@/components/Card';
 import VarianceBadge from '@/components/VarianceBadge';
+import SectionHeader from '@/components/SectionHeader';
+import ScreenTitle from '@/components/ScreenTitle';
 import { colors, spacing, font } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useMonth } from '@/data/useMonth';
@@ -60,16 +63,12 @@ export default function ComparisonScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <MonthBanner />
-      <ScrollView contentContainerStyle={{ padding: spacing.lg }}>
-        <Text style={{ color: colors.text, fontSize: font.size.lg, fontWeight: '700', marginBottom: spacing.md }}>
-          Comparison
-        </Text>
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}>
+        <ScreenTitle title="Compare" icon={ArrowLeftRight} />
 
         {/* Panel A: Budget vs Actual by category */}
-        <Text style={{ color: colors.textMuted, fontSize: font.size.sm, marginBottom: spacing.sm }}>
-          Budgeted vs Actual — {formatMonthLabel(activeMonth)}
-        </Text>
-        {rollups.length === 0 && <Text style={{ color: colors.textMuted }}>No categories to compare.</Text>}
+        <SectionHeader title={`Budgeted vs Actual — ${formatMonthLabel(activeMonth)}`} />
+        {rollups.length === 0 && <Text style={{ color: colors.textFaint, marginBottom: spacing.md }}>No categories to compare.</Text>}
         {rollups.map((cat) => (
           <Card key={cat.id} style={{ marginBottom: spacing.sm }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
@@ -98,15 +97,15 @@ export default function ComparisonScreen() {
         )}
 
         {/* Panel B: This month vs prior */}
-        <Text style={{ color: colors.textMuted, fontSize: font.size.sm, marginBottom: spacing.sm }}>
-          {formatMonthLabel(activeMonth)} vs {formatMonthLabel(priorKey)}
-        </Text>
+        <View style={{ marginTop: spacing.md }}>
+          <SectionHeader title={`${formatMonthLabel(activeMonth)} vs ${formatMonthLabel(priorKey)}`} />
+        </View>
         {delta && priorTotals ? (
           <Card>
             <DeltaRow label="Income" cents={delta.totalIncomeDelta} />
             <DeltaRow label="Budgeted" cents={delta.totalBudgetedDelta} />
             <DeltaRow label="Actual spent" cents={delta.totalActualDelta} />
-            <View style={{ height: 1, backgroundColor: colors.border, marginVertical: spacing.sm }} />
+            <View style={{ height: 1, backgroundColor: colors.hairline, marginVertical: spacing.sm }} />
             <DeltaRow label="Net saved" cents={delta.actualNetSavedDelta} />
           </Card>
         ) : (

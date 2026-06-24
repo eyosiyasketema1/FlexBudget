@@ -1,10 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
+import { Settings2, RotateCcw, ShieldCheck, Download, Upload, Archive } from 'lucide-react-native';
 
 import Card from '@/components/Card';
 import Field from '@/components/Field';
 import Button from '@/components/Button';
+import ScreenTitle from '@/components/ScreenTitle';
+import SectionHeader from '@/components/SectionHeader';
 import { colors, spacing, font } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { onDataChange } from '@/db';
@@ -16,6 +20,7 @@ import { exportEncryptedBackup, importEncryptedBackup } from '@/data/backup';
 // restore mistakenly-archived items. Backup/restore is a Phase 4 stub.
 export default function SettingsScreen() {
   const { activeMonth } = useActiveMonth();
+  const insets = useSafeAreaInsets();
   const [archivedItems, setArchivedItems] = useState<{ id: string; name: string }[]>([]);
   const [archivedCats, setArchivedCats] = useState<{ id: string; name: string }[]>([]);
   const [passphrase, setPassphrase] = useState('');
@@ -87,63 +92,59 @@ export default function SettingsScreen() {
     );
   };
 
-  return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg }}>
-      <Text style={{ color: colors.text, fontSize: font.size.lg, fontWeight: '700', marginBottom: spacing.md }}>
-        Settings
-      </Text>
+  const RestoreRow = ({ id, name, suffix, onPress }: { id: string; name: string; suffix?: string; onPress: () => void }) => (
+    <Card key={id} style={{ marginBottom: spacing.sm, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
+        <Archive size={17} color={colors.textFaint} strokeWidth={2} />
+        <Text style={{ color: colors.text }}>
+          {name}
+          {suffix ? <Text style={{ color: colors.textFaint }}> {suffix}</Text> : null}
+        </Text>
+      </View>
+      <Pressable onPress={onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        <RotateCcw size={15} color={colors.primary} strokeWidth={2.25} />
+        <Text style={{ color: colors.primary, fontWeight: '600' }}>Restore</Text>
+      </Pressable>
+    </Card>
+  );
 
-      <Text style={{ color: colors.textMuted, fontSize: font.size.sm, marginBottom: spacing.sm }}>
-        Archived in {formatMonthLabel(activeMonth)}
-      </Text>
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.bg }}
+      contentContainerStyle={{ padding: spacing.lg, paddingTop: insets.top + spacing.lg, paddingBottom: spacing.xxl }}
+    >
+      <ScreenTitle title="Settings" icon={Settings2} />
+
+      <SectionHeader title={`Archived in ${formatMonthLabel(activeMonth)}`} />
 
       {archivedCats.length === 0 && archivedItems.length === 0 && (
-        <Text style={{ color: colors.textMuted, marginBottom: spacing.lg }}>Nothing archived this month.</Text>
+        <Text style={{ color: colors.textFaint, marginBottom: spacing.lg }}>Nothing archived this month.</Text>
       )}
 
       {archivedCats.map((c) => (
-        <Card key={c.id} style={{ marginBottom: spacing.sm, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={{ color: colors.text }}>{c.name} <Text style={{ color: colors.textMuted }}>(category)</Text></Text>
-          <Pressable onPress={() => onRestoreCategory(c.id)}>
-            <Text style={{ color: colors.primary, fontWeight: '600' }}>Restore</Text>
-          </Pressable>
-        </Card>
+        <RestoreRow key={c.id} id={c.id} name={c.name} suffix="(category)" onPress={() => onRestoreCategory(c.id)} />
       ))}
-
       {archivedItems.map((it) => (
-        <Card key={it.id} style={{ marginBottom: spacing.sm, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={{ color: colors.text }}>{it.name}</Text>
-          <Pressable onPress={() => onRestoreItem(it.id)}>
-            <Text style={{ color: colors.primary, fontWeight: '600' }}>Restore</Text>
-          </Pressable>
-        </Card>
+        <RestoreRow key={it.id} id={it.id} name={it.name} onPress={() => onRestoreItem(it.id)} />
       ))}
 
-      <View style={{ height: 1, backgroundColor: colors.border, marginVertical: spacing.lg }} />
+      <View style={{ height: 1, backgroundColor: colors.hairline, marginVertical: spacing.lg }} />
 
+      <SectionHeader title="Encrypted backup" />
       <Card>
-        <Text style={{ color: colors.text, fontWeight: '600', marginBottom: spacing.xs }}>Encrypted backup</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+          <ShieldCheck size={20} color={colors.primary} strokeWidth={2} />
+          <Text style={{ color: colors.text, fontWeight: '600', fontSize: font.size.md }}>Move data between devices</Text>
+        </View>
         <Text style={{ color: colors.textMuted, fontSize: font.size.sm, marginBottom: spacing.md }}>
-          Export an AES-encrypted file of your local database to move data between devices — no cloud.
-          You'll need the same passphrase to restore.
+          Export an AES-encrypted file of your local database — no cloud. You'll need the same passphrase to restore.
         </Text>
-        <Field
-          label="Passphrase"
-          value={passphrase}
-          onChangeText={setPassphrase}
-          placeholder="At least 6 characters"
-        />
-        <Button title={busy ? 'Working…' : 'Export encrypted backup'} onPress={onExport} disabled={busy} />
-        <Button
-          title="Import from backup file"
-          onPress={onImport}
-          variant="secondary"
-          disabled={busy}
-          style={{ marginTop: spacing.sm }}
-        />
+        <Field label="Passphrase" value={passphrase} onChangeText={setPassphrase} placeholder="At least 6 characters" />
+        <Button title={busy ? 'Working…' : 'Export encrypted backup'} icon={Download} onPress={onExport} disabled={busy} />
+        <Button title="Import from backup file" icon={Upload} onPress={onImport} variant="secondary" disabled={busy} style={{ marginTop: spacing.sm }} />
       </Card>
 
-      <Text style={{ color: colors.textMuted, fontSize: font.size.xs, marginTop: spacing.lg }}>
+      <Text style={{ color: colors.textFaint, fontSize: font.size.xs, marginTop: spacing.lg, textAlign: 'center' }}>
         All data is stored locally on this device. Nothing is sent to a server.
       </Text>
     </ScrollView>

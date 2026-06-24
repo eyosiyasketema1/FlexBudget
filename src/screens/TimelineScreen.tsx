@@ -2,11 +2,13 @@ import React from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Lock, Unlock, CopyPlus, Plus, Banknote, ChevronRight } from 'lucide-react-native';
 
 import MonthBanner from '@/components/MonthBanner';
 import TotalsHeader from '@/components/TotalsHeader';
 import Card from '@/components/Card';
-import Button from '@/components/Button';
+import Button, { IconButton } from '@/components/Button';
+import SectionHeader from '@/components/SectionHeader';
 import { colors, spacing, font } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useMonth } from '@/data/useMonth';
@@ -20,10 +22,8 @@ export default function TimelineScreen() {
   const { activeMonth, setActiveMonth } = useActiveMonth();
   const { loading, isLocked, snapshot, totals } = useMonth(activeMonth);
 
-  // A future month the user navigated to may not exist yet.
-  const monthMissing = !loading && snapshot != null && snapshot.income.length === 0 &&
-    snapshot.categories.length === 0;
-
+  const monthMissing =
+    !loading && snapshot != null && snapshot.income.length === 0 && snapshot.categories.length === 0;
   const activeIncome = (snapshot?.income ?? []).filter((i) => !i.isArchived);
 
   const onCopyForward = async () => {
@@ -44,13 +44,16 @@ export default function TimelineScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <MonthBanner />
-      <ScrollView contentContainerStyle={{ padding: spacing.lg }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
-          <Text style={{ color: colors.text, fontSize: font.size.lg, fontWeight: '700' }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg }}>
+          <Text style={{ color: colors.text, fontSize: font.size.xl, fontWeight: '700', letterSpacing: font.tracking.tight }}>
             {formatMonthLabel(activeMonth)}
           </Text>
           {isLocked && (
-            <Text style={{ color: colors.locked, fontSize: font.size.sm }}>🔒 Locked</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Lock size={14} color={colors.textMuted} strokeWidth={2} />
+              <Text style={{ color: colors.textMuted, fontSize: font.size.sm }}>Locked</Text>
+            </View>
           )}
         </View>
 
@@ -59,47 +62,47 @@ export default function TimelineScreen() {
             <Text style={{ color: colors.textMuted, marginBottom: spacing.md }}>
               This month is empty. Start it from scratch, or copy last month's baseline.
             </Text>
-            <Button title="Create empty month" onPress={() => ensureMonth(activeMonth)} variant="secondary" />
+            <Button title="Create empty month" icon={Plus} onPress={() => ensureMonth(activeMonth)} variant="secondary" />
           </Card>
         ) : (
           totals && <TotalsHeader totals={totals} />
         )}
 
-        {/* Income */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm }}>
-          <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '600' }}>Income</Text>
-          {!isLocked && (
-            <Pressable onPress={() => nav.navigate('IncomeForm')}>
-              <Text style={{ color: colors.primary, fontWeight: '600' }}>+ Add</Text>
-            </Pressable>
-          )}
-        </View>
+        <SectionHeader
+          title="Income"
+          action={!isLocked ? <IconButton icon={Plus} label="Add income" onPress={() => nav.navigate('IncomeForm')} /> : undefined}
+        />
 
         {activeIncome.length === 0 ? (
-          <Text style={{ color: colors.textMuted, marginBottom: spacing.lg }}>No income yet.</Text>
+          <Text style={{ color: colors.textFaint, marginBottom: spacing.lg }}>No income yet.</Text>
         ) : (
           activeIncome.map((inc) => (
-            <Pressable
-              key={inc.id}
-              disabled={isLocked}
-              onPress={() => nav.navigate('IncomeForm', { incomeId: inc.id })}
-            >
-              <Card style={{ marginBottom: spacing.sm, flexDirection: 'row', justifyContent: 'space-between' }}>
-                <View>
-                  <Text style={{ color: colors.text, fontWeight: '600' }}>{inc.label}</Text>
-                  <Text style={{ color: colors.textMuted, fontSize: font.size.xs }}>{inc.category}</Text>
+            <Pressable key={inc.id} disabled={isLocked} onPress={() => nav.navigate('IncomeForm', { incomeId: inc.id })}>
+              <Card style={{ marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center' }}>
+                <View
+                  style={{
+                    width: 38, height: 38, borderRadius: 12, marginRight: spacing.md,
+                    backgroundColor: colors.positiveSoft, alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <Banknote size={19} color={colors.positive} strokeWidth={2} />
                 </View>
-                <Text style={{ color: colors.text, fontWeight: '700' }}>{formatCents(inc.amountCents)}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.text, fontWeight: '600', fontSize: font.size.md }}>{inc.label}</Text>
+                  <Text style={{ color: colors.textFaint, fontSize: font.size.xs }}>{inc.category}</Text>
+                </View>
+                <Text style={{ color: colors.text, fontWeight: '700', fontSize: font.size.md }}>{formatCents(inc.amountCents)}</Text>
+                {!isLocked && <ChevronRight size={18} color={colors.textFaint} style={{ marginLeft: 4 }} />}
               </Card>
             </Pressable>
           ))
         )}
 
-        {/* Month lifecycle actions */}
         <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
-          <Button title="Copy baseline to next month" onPress={onCopyForward} variant="secondary" />
+          <Button title="Copy baseline to next month" icon={CopyPlus} onPress={onCopyForward} variant="secondary" />
           <Button
             title={isLocked ? 'Unlock month' : 'Close out & lock month'}
+            icon={isLocked ? Unlock : Lock}
             onPress={onToggleLock}
             variant={isLocked ? 'secondary' : 'danger'}
           />

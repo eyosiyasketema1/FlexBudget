@@ -2,7 +2,8 @@ import React from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Text } from 'react-native';
+import { House, Wallet, ArrowLeftRight, Sparkles, Settings2 } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 
 import { colors } from '@/theme/theme';
 import TimelineScreen from '@/screens/TimelineScreen';
@@ -36,9 +37,9 @@ const navTheme = {
   },
 };
 
-function tabIcon(label: string) {
-  return ({ color }: { color: string }) => (
-    <Text style={{ color, fontSize: 11, fontWeight: '600' }}>{label}</Text>
+function tabIcon(Comp: LucideIcon) {
+  return ({ color, focused }: { color: string; focused: boolean }) => (
+    <Comp size={22} color={color} strokeWidth={focused ? 2.4 : 1.9} />
   );
 }
 
@@ -46,18 +47,24 @@ function Tabs() {
   return (
     <Tab.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: colors.surface },
-        headerTitleStyle: { color: colors.text },
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+          height: 64,
+          paddingTop: 8,
+          paddingBottom: 10,
+        },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
+        tabBarInactiveTintColor: colors.textFaint,
       }}
     >
-      <Tab.Screen name="Timeline" component={TimelineScreen} options={{ tabBarIcon: tabIcon('Home') }} />
-      <Tab.Screen name="Budget" component={BudgetScreen} options={{ tabBarIcon: tabIcon('Budget') }} />
-      <Tab.Screen name="Comparison" component={ComparisonScreen} options={{ tabBarIcon: tabIcon('Delta') }} />
-      <Tab.Screen name="Insights" component={InsightsScreen} options={{ tabBarIcon: tabIcon('Insights') }} />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarIcon: tabIcon('More') }} />
+      <Tab.Screen name="Timeline" component={TimelineScreen} options={{ title: 'Home', tabBarIcon: tabIcon(House) }} />
+      <Tab.Screen name="Budget" component={BudgetScreen} options={{ tabBarIcon: tabIcon(Wallet) }} />
+      <Tab.Screen name="Comparison" component={ComparisonScreen} options={{ title: 'Compare', tabBarIcon: tabIcon(ArrowLeftRight) }} />
+      <Tab.Screen name="Insights" component={InsightsScreen} options={{ tabBarIcon: tabIcon(Sparkles) }} />
+      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarIcon: tabIcon(Settings2) }} />
     </Tab.Navigator>
   );
 }

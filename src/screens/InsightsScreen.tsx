@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
+import { Sparkles, Gauge, Scale } from 'lucide-react-native';
 
 import MonthBanner from '@/components/MonthBanner';
 import Card from '@/components/Card';
+import ScreenTitle from '@/components/ScreenTitle';
 import { colors, spacing, font, radius } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useMonth } from '@/data/useMonth';
@@ -50,15 +52,18 @@ export default function InsightsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <MonthBanner />
-      <ScrollView contentContainerStyle={{ padding: spacing.lg }}>
-        <Text style={{ color: colors.text, fontSize: font.size.lg, fontWeight: '700', marginBottom: spacing.md }}>
-          Insights
-        </Text>
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}>
+        <ScreenTitle title="Insights" icon={Sparkles} />
 
         {/* Predictive runway */}
         <Card style={{ marginBottom: spacing.lg }}>
-          <Text style={{ color: colors.textMuted, fontSize: font.size.xs }}>PREDICTIVE RUNWAY</Text>
-          <Text style={{ color: colors.primary, fontSize: font.size.xxl, fontWeight: '700' }}>{runwayText}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <Gauge size={15} color={colors.textFaint} strokeWidth={2} />
+            <Text style={{ color: colors.textMuted, fontSize: font.size.xs, letterSpacing: font.tracking.caps, fontWeight: '600' }}>
+              PREDICTIVE RUNWAY
+            </Text>
+          </View>
+          <Text style={{ color: colors.primary, fontSize: font.size.xxl, fontWeight: '700', letterSpacing: font.tracking.tight }}>{runwayText}</Text>
           {runway.monthsAnalyzed > 0 ? (
             <Text style={{ color: colors.textMuted, fontSize: font.size.sm }}>
               Based on {runway.monthsAnalyzed} month{runway.monthsAnalyzed > 1 ? 's' : ''} of history,
@@ -73,9 +78,12 @@ export default function InsightsScreen() {
         </Card>
 
         {/* 50/30/20 benchmark */}
-        <Text style={{ color: colors.textMuted, fontSize: font.size.sm, marginBottom: spacing.sm }}>
-          50 / 30 / 20 benchmark
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.md }}>
+          <Scale size={15} color={colors.textFaint} strokeWidth={2} />
+          <Text style={{ color: colors.textMuted, fontSize: font.size.xs, letterSpacing: font.tracking.caps, fontWeight: '700', textTransform: 'uppercase' }}>
+            50 / 30 / 20 benchmark
+          </Text>
+        </View>
         {benchmark && benchmark.totalIncomeCents > 0 ? (
           <Card>
             {benchmark.buckets.map((b) => (

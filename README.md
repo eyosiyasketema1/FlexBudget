@@ -49,6 +49,11 @@ src/
   theme/         design tokens
 ```
 
+### Design system
+- **Tokens** live in `src/theme/theme.ts` — one restrained accent, calm dark neutrals, semantic variance colors, a tight type scale, soft card elevation. Everything reads from here.
+- **Icons** are [Lucide](https://lucide.dev) (`lucide-react-native` + `react-native-svg`), wrapped by `src/components/Icon.tsx` for a consistent stroke weight.
+- **Reusable UI**: `Card`, `Button`/`IconButton`, `Field`, `SectionHeader`, `ScreenTitle`, `TotalsHeader`, `VarianceBadge`, `MonthBanner`. Screens compose these rather than restyling locally.
+
 ### Core design rules
 - **Local SQLite** via expo-sqlite (`src/db/sqlite.ts`). Tables created with `CREATE TABLE IF NOT EXISTS`; money as INTEGER cents, booleans as 0/1.
 - **Money is always integer cents.** Conversion/formatting is isolated to `utils/money.ts`. No float arithmetic on amounts.

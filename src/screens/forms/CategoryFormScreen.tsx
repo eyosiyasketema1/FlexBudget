@@ -99,7 +99,7 @@ export default function CategoryFormScreen() {
                 borderColor: active ? colors.primary : colors.border,
               }}
             >
-              <Text style={{ color: active ? '#06122B' : colors.text, fontWeight: '600', fontSize: font.size.sm }}>
+              <Text style={{ color: active ? colors.onAccent : colors.text, fontWeight: '600', fontSize: font.size.sm }}>
                 {b.label}
               </Text>
             </Pressable>

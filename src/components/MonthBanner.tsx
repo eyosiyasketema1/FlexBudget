@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { ScrollView, Pressable, Text, View } from 'react-native';
+import { Lock } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { onDataChange } from '@/db';
 import { listMonths } from '@/data/snapshot';
 import { colors, radius, spacing, font } from '@/theme/theme';
@@ -10,6 +12,7 @@ import { formatMonthShort, shiftMonth, currentMonthYear } from '@/utils/date';
 // future planning slots; tap to time-travel. Lock badge marks closed months.
 export default function MonthBanner() {
   const { activeMonth, setActiveMonth } = useActiveMonth();
+  const insets = useSafeAreaInsets();
   const [months, setMonths] = useState<{ monthYear: string; locked: boolean }[]>([]);
 
   const refresh = useCallback(async () => {
@@ -44,11 +47,11 @@ export default function MonthBanner() {
   }, [refresh]);
 
   return (
-    <View style={{ backgroundColor: colors.bg, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+    <View style={{ backgroundColor: colors.bg, borderBottomWidth: 1, borderBottomColor: colors.hairline, paddingTop: insets.top }}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.sm }}
+        contentContainerStyle={{ paddingHorizontal: spacing.md, paddingVertical: spacing.md, gap: spacing.sm }}
       >
         {months.map(({ monthYear, locked }) => {
           const active = monthYear === activeMonth;
@@ -66,19 +69,26 @@ export default function MonthBanner() {
                 paddingHorizontal: spacing.lg,
                 paddingVertical: spacing.sm,
                 alignItems: 'center',
-                minWidth: 64,
+                minWidth: 66,
+                borderWidth: 1,
+                borderColor: active ? colors.primary : colors.border,
               }}
             >
-              <Text
-                style={{
-                  color: active ? '#06122B' : colors.text,
-                  fontWeight: '700',
-                  fontSize: font.size.sm,
-                }}
-              >
-                {formatMonthShort(monthYear)} {locked ? '🔒' : ''}
-              </Text>
-              <Text style={{ color: active ? '#06122B' : colors.textMuted, fontSize: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Text
+                  style={{
+                    color: active ? colors.onAccent : colors.text,
+                    fontWeight: '700',
+                    fontSize: font.size.sm,
+                  }}
+                >
+                  {formatMonthShort(monthYear)}
+                </Text>
+                {locked ? (
+                  <Lock size={11} color={active ? colors.onAccent : colors.textMuted} strokeWidth={2.5} />
+                ) : null}
+              </View>
+              <Text style={{ color: active ? colors.onAccent : colors.textFaint, fontSize: 10 }}>
                 {y}
               </Text>
             </Pressable>
