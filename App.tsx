@@ -31,7 +31,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ActiveMonthProvider>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <RootNavigator />
       </ActiveMonthProvider>
     </SafeAreaProvider>

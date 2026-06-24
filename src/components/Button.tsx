@@ -6,13 +6,13 @@ import { colors, radius, font, spacing } from '@/theme/theme';
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
 const bg: Record<Variant, string> = {
-  primary: colors.primary,
+  primary: colors.ink, // black pill CTA
   secondary: colors.surfaceAlt,
   ghost: 'transparent',
   danger: colors.negativeSoft,
 };
 const fg: Record<Variant, string> = {
-  primary: colors.onAccent,
+  primary: colors.onInk,
   secondary: colors.text,
   ghost: colors.textMuted,
   danger: colors.negative,
@@ -44,8 +44,8 @@ export default function Button({
         {
           backgroundColor: bg[variant],
           opacity: disabled ? 0.4 : pressed ? 0.85 : 1,
-          borderRadius: radius.md,
-          paddingVertical: 14,
+          borderRadius: radius.pill,
+          paddingVertical: 16,
           paddingHorizontal: spacing.lg,
           flexDirection: 'row',
           alignItems: 'center',

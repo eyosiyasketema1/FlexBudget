@@ -4,10 +4,10 @@
     "slug": "flexbudget",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "splash": {
-      "backgroundColor": "#0E1116"
+      "backgroundColor": "#FFFFFF"
     },
     "ios": {
       "supportsTablet": true,

@@ -1,40 +1,46 @@
 // ─────────────────────────────────────────────────────────────────────────
-// FlexBudget design tokens — refined minimal (dark).
-// One restrained accent, calm neutrals, clear semantic colors, a tight type
-// scale, and soft elevation. Everything in the UI should read from here.
+// FlexBudget design tokens — light / minimal.
+// Pure white, heavy near-black type, one vivid green accent, soft gray fills,
+// big display numbers, and black pill buttons. Inspired by clean, bold
+// minimal fitness/finance UI. Everything in the UI reads from here.
 // ─────────────────────────────────────────────────────────────────────────
 
 export const colors = {
-  // Surfaces (near-black → progressively lighter)
-  bg: '#0B0D10',
-  surface: '#14171C',
-  surfaceAlt: '#1B1F26',
-  elevated: '#20252D',
+  // Surfaces
+  bg: '#FFFFFF',
+  surface: '#FFFFFF',
+  surfaceAlt: '#F3F4F5', // light gray fill (empty cells, inputs, chips)
+  elevated: '#FFFFFF',
 
   // Lines
-  border: '#23282F',
-  hairline: 'rgba(255,255,255,0.06)',
+  border: '#ECEDEF',
+  hairline: '#F0F1F2',
 
   // Text
-  text: '#F4F6F8',
-  textMuted: '#8B939F',
-  textFaint: '#5A626D',
-  onAccent: '#08111F',
+  text: '#0B0C0E', // near-black, headings & numbers
+  textMuted: '#9A9EA6', // secondary gray
+  textFaint: '#C4C8CE', // faint gray (day labels, hints)
+  onAccent: '#FFFFFF',
 
-  // Single restrained accent
-  primary: '#4F7CFF',
-  primarySoft: 'rgba(79,124,255,0.14)',
+  // Ink = primary action (black pill buttons / active states)
+  ink: '#0B0C0E',
+  onInk: '#FFFFFF',
 
-  // Semantic (variance / status)
-  positive: '#3DD68C',
-  positiveSoft: 'rgba(61,214,140,0.14)',
-  negative: '#F4685E',
-  negativeSoft: 'rgba(244,104,94,0.14)',
-  warning: '#F5B544',
-  warningSoft: 'rgba(245,181,68,0.14)',
+  // Vivid green accent — highlights, positive, active data
+  primary: '#06C167',
+  primarySoft: '#D9F7E7', // mint tint (partial heatmap-style fills)
+  primaryFaint: '#EAFBF2',
 
-  // Category/accent ramp for subtle data viz
-  ramp: ['#4F7CFF', '#3DD68C', '#F5B544', '#C77DFF', '#5AD1E0', '#F4685E'],
+  // Semantic
+  positive: '#06C167',
+  positiveSoft: '#D9F7E7',
+  negative: '#FF4D4F',
+  negativeSoft: '#FFE5E5',
+  warning: '#F5A623',
+  warningSoft: '#FDEFD6',
+
+  // Accent ramp for subtle data viz
+  ramp: ['#06C167', '#0B0C0E', '#F5A623', '#7C5CFF', '#19B5C9', '#FF4D4F'],
 };
 
 export const spacing = {
@@ -55,31 +61,32 @@ export const radius = {
 };
 
 export const font = {
-  size: { xs: 12, sm: 13, md: 15, lg: 18, xl: 22, xxl: 28, display: 40 },
+  size: { xs: 12, sm: 13, md: 15, lg: 18, xl: 24, xxl: 30, display: 46 },
   weight: {
     regular: '400',
     medium: '500',
     semibold: '600',
     bold: '700',
+    heavy: '800',
   } as const,
-  // Subtle negative tracking on large numbers reads as "designed".
-  tracking: { tight: -0.5, normal: 0, wide: 0.4, caps: 1.1 },
+  // Tight tracking on big bold numbers reads as "designed".
+  tracking: { tight: -1, snug: -0.4, normal: 0, wide: 0.4, caps: 1 },
 };
 
-// Soft, low-contrast elevation for cards (Android elevation + iOS shadow).
+// Very soft elevation — on white we lean on hairlines, not heavy shadows.
 export const elevation = {
   card: {
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
+    shadowColor: '#0B0C0E',
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    elevation: 1,
   },
   floating: {
-    shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
+    shadowColor: '#0B0C0E',
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
     shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
+    elevation: 6,
   },
 };

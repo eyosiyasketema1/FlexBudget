@@ -64,20 +64,20 @@ export default function MonthBanner() {
               accessibilityState={{ selected: active }}
               accessibilityLabel={`${formatMonthShort(monthYear)} ${monthYear.split('-')[0]}${locked ? ', locked' : ''}`}
               style={{
-                backgroundColor: active ? colors.primary : colors.surfaceAlt,
+                backgroundColor: active ? colors.ink : colors.surfaceAlt,
                 borderRadius: radius.pill,
                 paddingHorizontal: spacing.lg,
                 paddingVertical: spacing.sm,
                 alignItems: 'center',
                 minWidth: 66,
                 borderWidth: 1,
-                borderColor: active ? colors.primary : colors.border,
+                borderColor: active ? colors.ink : colors.border,
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Text
                   style={{
-                    color: active ? colors.onAccent : colors.text,
+                    color: active ? colors.onInk : colors.text,
                     fontWeight: '700',
                     fontSize: font.size.sm,
                   }}
@@ -85,10 +85,10 @@ export default function MonthBanner() {
                   {formatMonthShort(monthYear)}
                 </Text>
                 {locked ? (
-                  <Lock size={11} color={active ? colors.onAccent : colors.textMuted} strokeWidth={2.5} />
+                  <Lock size={11} color={active ? colors.onInk : colors.textMuted} strokeWidth={2.5} />
                 ) : null}
               </View>
-              <Text style={{ color: active ? colors.onAccent : colors.textFaint, fontSize: 10 }}>
+              <Text style={{ color: active ? colors.onInk : colors.textFaint, fontSize: 10 }}>
                 {y}
               </Text>
             </Pressable>

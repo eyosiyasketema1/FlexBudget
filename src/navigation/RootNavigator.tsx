@@ -56,7 +56,7 @@ function Tabs() {
           paddingBottom: 10,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: colors.ink,
         tabBarInactiveTintColor: colors.textFaint,
       }}
     >
@@ -76,7 +76,8 @@ export default function RootNavigator() {
         screenOptions={{
           headerStyle: { backgroundColor: colors.surface },
           headerTitleStyle: { color: colors.text },
-          headerTintColor: colors.primary,
+          headerTintColor: colors.ink,
+          headerShadowVisible: false,
         }}
       >
         <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />

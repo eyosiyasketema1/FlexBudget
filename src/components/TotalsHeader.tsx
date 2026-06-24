@@ -39,7 +39,7 @@ export default function TotalsHeader({ totals }: { totals: MonthTotals }) {
           NET SAVED
         </Text>
       </View>
-      <Text style={{ color: accent, fontSize: font.size.display, fontWeight: '700', letterSpacing: font.tracking.tight, marginBottom: spacing.md }}>
+      <Text style={{ color: accent, fontSize: font.size.display, fontWeight: '800', letterSpacing: font.tracking.tight, marginBottom: spacing.md }}>
         {formatCents(totals.actualNetSavedCents, true)}
       </Text>
 
