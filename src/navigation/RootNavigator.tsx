@@ -20,7 +20,7 @@ export type RootStackParamList = {
   Insights: undefined;
   IncomeForm: { incomeId?: string } | undefined;
   CategoryForm: { categoryId?: string } | undefined;
-  ItemForm: { categoryId: string; itemId?: string };
+  ItemForm: { categoryId?: string; itemId?: string } | undefined;
 };
 
 const Tab = createBottomTabNavigator();
@@ -73,7 +73,13 @@ export default function RootNavigator() {
         <Stack.Group screenOptions={{ presentation: 'modal' }}>
           <Stack.Screen name="IncomeForm" component={IncomeFormScreen} options={{ title: 'Income' }} />
           <Stack.Screen name="CategoryForm" component={CategoryFormScreen} options={{ title: 'Category' }} />
-          <Stack.Screen name="ItemForm" component={ItemFormScreen} options={{ title: 'Line Item' }} />
+          <Stack.Screen
+            name="ItemForm"
+            component={ItemFormScreen}
+            options={({ route }) => ({
+              title: route.params?.itemId ? 'Edit Expense' : route.params?.categoryId ? 'New Item' : 'Add Expense',
+            })}
+          />
         </Stack.Group>
       </Stack.Navigator>
     </NavigationContainer>

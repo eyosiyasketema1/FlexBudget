@@ -1,9 +1,12 @@
 import React from 'react';
 import { View, Pressable, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { Plus } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { colors, radius, elevation } from '@/theme/theme';
+
+const BAR_HEIGHT = 68; // inner circle (52) + vertical padding (8 + 8)
 
 // A floating, frosted-glass navigation bar — detached from the bottom edge,
 // rounded, blurring the content beneath it. Each tab shows an icon above its
@@ -19,10 +22,12 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
         left: 0,
         right: 0,
         bottom: 0,
-        alignItems: 'center', // hug content + center the pill
+        alignItems: 'center', // center the nav+button group
         paddingBottom: Math.max(insets.bottom, 8) + 6,
       }}
     >
+      {/* nav pill + circular add button, centered as a group */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <BlurView
         intensity={Platform.OS === 'android' ? 60 : 50}
         tint="light"
@@ -83,6 +88,43 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
           })}
         </View>
       </BlurView>
+
+      {/* Circular add-expense button — same height as the nav pill */}
+      <Pressable
+        onPress={() => navigation.navigate('ItemForm' as never)}
+        accessibilityRole="button"
+        accessibilityLabel="Add expense"
+        android_ripple={null}
+        style={{ width: BAR_HEIGHT, height: BAR_HEIGHT, borderRadius: radius.pill, overflow: 'hidden' }}
+      >
+        <BlurView
+          intensity={Platform.OS === 'android' ? 60 : 50}
+          tint="light"
+          experimentalBlurMethod="dimezisBlurView"
+          style={{
+            flex: 1,
+            borderRadius: radius.pill,
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.55)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            ...elevation.floating,
+          }}
+        >
+          <View
+            style={{
+              flex: 1,
+              alignSelf: 'stretch',
+              backgroundColor: 'rgba(255,255,255,0.35)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Plus size={28} color={colors.ink} strokeWidth={2.25} />
+          </View>
+        </BlurView>
+      </Pressable>
+      </View>
     </View>
   );
 }

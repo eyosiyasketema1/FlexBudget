@@ -213,6 +213,14 @@ export async function restoreCategory(id: string) {
   notifyChange();
 }
 
+/** Non-archived categories for a month (for the expense-add picker). */
+export async function listActiveCategories(monthYear: string): Promise<{ id: string; name: string }[]> {
+  return all<{ id: string; name: string }>(
+    'SELECT id, name FROM expense_categories WHERE month_year = ? AND is_archived = 0 ORDER BY sort_order ASC',
+    [monthYear],
+  );
+}
+
 // ── Month lifecycle ─────────────────────────────────────────────────────────
 export async function lockMonth(monthYear: string) {
   await run('UPDATE months SET is_locked = 1 WHERE month_year = ?', [monthYear]);
