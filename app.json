@@ -16,6 +16,9 @@
     "android": {
       "package": "com.flexbudget.app"
     },
-    "jsEngine": "hermes"
+    "jsEngine": "hermes",
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

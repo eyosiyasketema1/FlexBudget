@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { Gauge } from 'lucide-react-native';
 
-import MonthBanner from '@/components/MonthBanner';
+import MonthDropdown from '@/components/MonthDropdown';
 import Card from '@/components/Card';
 import SectionHeader from '@/components/SectionHeader';
 import VarianceBadge from '@/components/VarianceBadge';
@@ -72,7 +72,7 @@ export default function InsightsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <MonthBanner safeTop={false} />
+      <MonthDropdown safeTop={false} />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}>
         {/* Budget vs Actual */}
         <SectionHeader title={`Budgeted vs Actual — ${formatMonthLabel(activeMonth)}`} />

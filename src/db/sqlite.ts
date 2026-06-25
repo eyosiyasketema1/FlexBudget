@@ -7,7 +7,8 @@ import * as SQLite from 'expo-sqlite';
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
-  if (!dbPromise) dbPromise = SQLite.openDatabaseAsync('flexbudget.db');
+  // v3 db file: fresh start — full 35,000 zero-based template, 0 spent.
+  if (!dbPromise) dbPromise = SQLite.openDatabaseAsync('flexbudget_v3.db');
   return dbPromise;
 }
 

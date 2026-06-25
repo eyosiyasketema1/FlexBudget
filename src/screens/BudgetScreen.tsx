@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Plus, Trash2, RefreshCw, TriangleAlert, FolderOpen } from 'lucide-react-native';
 
-import MonthBanner from '@/components/MonthBanner';
+import MonthDropdown from '@/components/MonthDropdown';
 import Card from '@/components/Card';
 import VarianceBadge from '@/components/VarianceBadge';
 import SectionHeader from '@/components/SectionHeader';
@@ -47,7 +47,7 @@ export default function BudgetScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <MonthBanner />
+      <MonthDropdown />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: layout.tabBarSpace }}>
         <SectionHeader
           title="Budget"
