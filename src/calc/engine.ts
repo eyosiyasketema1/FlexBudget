@@ -205,23 +205,23 @@ export interface BenchmarkResult {
   savingsRatePercent: number; // actual net saved / income
 }
 
-const FRAMEWORK: Record<Bucket, number> = { needs: 50, wants: 30, savings: 20 };
+// 50 / 20 / 20 / 10 framework: Needs, Wants, Savings, Church (tithe/giving).
+const FRAMEWORK: Record<Bucket, number> = { needs: 50, wants: 20, savings: 20, church: 10 };
 
 /**
- * Compare actual spending against the 50/30/20 rule. Categories opt in via a
- * `bucket` tag ('needs' | 'wants' | 'savings'). The 'savings' bucket's actual
- * is treated as money kept (net saved), not spent.
+ * Compare actual spending against the allocation framework. Categories opt in
+ * via a `bucket` tag. Needs/Wants/Church are spending; Savings is money kept.
  */
 export function computeBenchmark(snapshot: MonthSnapshot): BenchmarkResult {
   const t = computeTotals(snapshot);
   const income = t.totalIncomeCents;
   const cats = snapshot.categories.filter(notArchived);
 
-  const spentByBucket: Record<Bucket, Cents> = { needs: 0, wants: 0, savings: 0 };
+  const spentByBucket: Record<Bucket, Cents> = { needs: 0, wants: 0, savings: 0, church: 0 };
   let untagged = 0;
   for (const c of cats) {
     const actual = sum(c.items.filter(notArchived).map((i) => i.actualSpentCents));
-    if (c.bucket === 'needs' || c.bucket === 'wants') spentByBucket[c.bucket] += actual;
+    if (c.bucket === 'needs' || c.bucket === 'wants' || c.bucket === 'church') spentByBucket[c.bucket] += actual;
     else if (c.bucket === 'savings') spentByBucket.savings += actual;
     else untagged += actual;
   }

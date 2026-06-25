@@ -4,8 +4,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as Font from 'expo-font';
 
-import { initDatabase, run } from '@/db';
-import { ensureCurrentMonth, fullyAllocateSavings } from '@/db/seed';
+import { initDatabase } from '@/db';
+import { ensureCurrentMonth } from '@/db/seed';
 import { ActiveMonthProvider } from '@/state/ActiveMonthContext';
 import RootNavigator from '@/navigation/RootNavigator';
 import { colors } from '@/theme/theme';
@@ -37,14 +37,8 @@ export default function App() {
   useEffect(() => {
     (async () => {
       await initDatabase();
+      // Only ever CREATES the current month if missing; never edits existing data.
       await ensureCurrentMonth();
-      // Non-destructive: rename any legacy "Salary" income to "Salary Account".
-      try {
-        await run("UPDATE income_items SET label = 'Salary Account' WHERE label = 'Salary'");
-        await fullyAllocateSavings();
-      } catch {
-        /* ignore */
-      }
       try {
         await Font.loadAsync(fontAssets);
         applyGeneralSans();

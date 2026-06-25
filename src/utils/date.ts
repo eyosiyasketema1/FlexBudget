@@ -21,6 +21,12 @@ export function prevMonth(monthYear: string): string {
   return shiftMonth(monthYear, -1);
 }
 
+/** Number of days in a "YYYY-MM" month. */
+export function daysInMonth(monthYear: string): number {
+  const [y, m] = monthYear.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+}
+
 /** "2026-06" -> "Jun 2026" for display. */
 export function formatMonthLabel(monthYear: string): string {
   const [y, m] = monthYear.split('-').map(Number);

@@ -11,10 +11,11 @@ import type { RootStackParamList } from '@/navigation/RootNavigator';
 import type { Bucket } from '@/calc/types';
 
 const BUCKETS: { key: Bucket | null; label: string }[] = [
-  { key: null, label: 'None' },
   { key: 'needs', label: 'Needs' },
   { key: 'wants', label: 'Wants' },
+  { key: 'church', label: 'Church' },
   { key: 'savings', label: 'Savings' },
+  { key: null, label: 'None' },
 ];
 
 export default function CategoryFormScreen() {

@@ -20,7 +20,7 @@ export async function seedTemplate(monthYear: string): Promise<void> {
       const catId = makeId('CAT');
       await db.runAsync(
         'INSERT INTO expense_categories (id, month_year, name, allocation_cap_percent, bucket, is_archived, sort_order, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)',
-        [catId, monthYear, cat.name, null, cat.bucket, order++, now],
+        [catId, monthYear, cat.name, cat.capPercent, cat.bucket, order++, now],
       );
       let itemOrder = 0;
       for (const it of cat.items) {

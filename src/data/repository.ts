@@ -45,15 +45,25 @@ export async function getCategory(id: string): Promise<CategoryRowDto | null> {
 }
 
 export interface ItemRowDto {
-  id: string; name: string; budgetCapCents: number; actualSpentCents: number;
+  id: string; categoryId: string; name: string; budgetCapCents: number; actualSpentCents: number;
   rolloverEnabled: boolean; rolloverCents: number; monthYear: string;
 }
 export async function getItem(id: string): Promise<ItemRowDto | null> {
   const r = await first<any>('SELECT * FROM expense_items WHERE id = ?', [id]);
   return r ? {
-    id: r.id, name: r.name, budgetCapCents: r.budget_cap_cents, actualSpentCents: r.actual_spent_cents,
+    id: r.id, categoryId: r.category_id, name: r.name, budgetCapCents: r.budget_cap_cents, actualSpentCents: r.actual_spent_cents,
     rolloverEnabled: bool(r.rollover_enabled), rolloverCents: r.rollover_cents, monthYear: r.month_year,
   } : null;
+}
+
+/** Move a sub-category (item) to a different main category. */
+export async function moveItemToCategory(itemId: string, newCategoryId: string) {
+  const row = await getItem(itemId);
+  if (!row || row.categoryId === newCategoryId) return;
+  await assertUnlocked(row.monthYear);
+  const cnt = await first<{ n: number }>('SELECT COUNT(*) AS n FROM expense_items WHERE category_id = ?', [newCategoryId]);
+  await run('UPDATE expense_items SET category_id = ?, sort_order = ? WHERE id = ?', [newCategoryId, cnt?.n ?? 0, itemId]);
+  notifyChange();
 }
 
 // ── Income ──────────────────────────────────────────────────────────────────
@@ -211,6 +221,29 @@ export async function restoreItem(id: string) {
 export async function restoreCategory(id: string) {
   await run('UPDATE expense_categories SET is_archived = 0 WHERE id = ?', [id]);
   notifyChange();
+}
+
+// ── Settings (key/value) ────────────────────────────────────────────────
+export async function getSetting(key: string): Promise<string | null> {
+  const row = await first<{ value: string }>('SELECT value FROM settings WHERE key = ?', [key]);
+  return row?.value ?? null;
+}
+
+export async function setSetting(key: string, value: string): Promise<void> {
+  await run('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value', [key, value]);
+  notifyChange();
+}
+
+const SAVINGS_TARGET_KEY = 'savings_target_cents';
+
+export async function getSavingsTargetCents(): Promise<number> {
+  const v = await getSetting(SAVINGS_TARGET_KEY);
+  const n = v ? parseInt(v, 10) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
+export async function setSavingsTargetCents(cents: number): Promise<void> {
+  await setSetting(SAVINGS_TARGET_KEY, String(Math.max(0, Math.round(cents))));
 }
 
 /** Non-archived categories for a month (for the expense-add picker). */

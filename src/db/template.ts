@@ -12,6 +12,7 @@ export const SALARY_INCOME = {
 interface TemplateCategory {
   name: string;
   bucket: Bucket;
+  capPercent: number; // allocation cap (50 / 20 / 20 / 10)
   items: { name: string; budgetCents: number }[];
 }
 
@@ -19,6 +20,7 @@ export const BUDGET_TEMPLATE: TemplateCategory[] = [
   {
     name: 'Needs',
     bucket: 'needs',
+    capPercent: 50,
     items: [
       { name: 'Rent', budgetCents: 1_400_000 },
       { name: 'Electric', budgetCents: 80_000 },
@@ -32,6 +34,7 @@ export const BUDGET_TEMPLATE: TemplateCategory[] = [
   {
     name: 'Wants',
     bucket: 'wants',
+    capPercent: 20,
     items: [
       { name: 'Date', budgetCents: 300_000 },
       { name: 'Coffee', budgetCents: 100_000 },
@@ -39,16 +42,22 @@ export const BUDGET_TEMPLATE: TemplateCategory[] = [
     ],
   },
   {
+    name: 'Church',
+    bucket: 'church',
+    capPercent: 10,
+    items: [{ name: 'Tithe and gift', budgetCents: 330_000 }],
+  },
+  {
     name: 'Savings',
     bucket: 'savings',
+    capPercent: 20,
     items: [
-      { name: 'Tithe and gift', budgetCents: 330_000 },
-      // Remainder of income so every birr is allocated (zero-based): 35,000
-      // total − 21,930 needs − 5,500 wants − 3,300 tithe = 4,270.
+      // Remainder so every birr is allocated (zero-based):
+      // 35,000 − 21,930 needs − 5,500 wants − 3,300 church = 4,270.
       { name: 'Savings', budgetCents: 427_000 },
     ],
   },
 ];
 
 // Display order for the buckets on the home screen.
-export const BUCKET_ORDER: Bucket[] = ['needs', 'wants', 'savings'];
+export const BUCKET_ORDER: Bucket[] = ['needs', 'wants', 'church', 'savings'];

@@ -1,172 +1,261 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView } from 'react-native';
-import { Gauge } from 'lucide-react-native';
+import { Gauge, Wallet, PieChart as PieIcon, Target, TrendingUp, AlertTriangle } from 'lucide-react-native';
 
 import MonthDropdown from '@/components/MonthDropdown';
 import Card from '@/components/Card';
 import SectionHeader from '@/components/SectionHeader';
-import VarianceBadge from '@/components/VarianceBadge';
-import { colors, spacing, font, radius } from '@/theme/theme';
+import Field from '@/components/Field';
+import Button from '@/components/Button';
+import DonutChart from '@/components/charts/DonutChart';
+import LineChart from '@/components/charts/LineChart';
+import { colors, spacing, font, radius, layout } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useMonth } from '@/data/useMonth';
 import { useAllMonthSnapshots } from '@/data/useHistory';
-import { loadMonthSnapshot } from '@/data/snapshot';
-import { computeRunway, computeBenchmark, computeTotals, monthDelta, classifyVariance } from '@/calc/engine';
-import { formatCents, formatSignedCents } from '@/utils/money';
-import { prevMonth, formatMonthLabel } from '@/utils/date';
-import type { Bucket, MonthTotals, MonthDelta } from '@/calc/types';
+import { computeRunway } from '@/calc/engine';
+import {
+  computeSafeToSpend,
+  computeComposition,
+  topSpendItems,
+  overspentItems,
+  computeSavingsGoal,
+  buildTrends,
+} from '@/calc/analytics';
+import { onDataChange } from '@/db';
+import { getSavingsTargetCents, setSavingsTargetCents } from '@/data/repository';
+import { formatCents, toCents } from '@/utils/money';
+import { formatMonthShort } from '@/utils/date';
+import type { Bucket } from '@/calc/types';
 
-const bucketLabel: Record<Bucket, string> = { needs: 'Needs', wants: 'Wants', savings: 'Savings' };
+const BUCKET_COLOR: Record<Bucket, string> = { needs: '#06C167', wants: '#7C5CFF', savings: '#F5A623', church: '#19B5C9' };
+const BUCKET_LABEL: Record<Bucket, string> = { needs: 'Needs', wants: 'Wants', savings: 'Savings', church: 'Church' };
 
-function Meter({ percent, target, good }: { percent: number; target: number; good: boolean }) {
-  const width = Math.min(percent, 100);
+function Bar({ pct, color, over }: { pct: number; color: string; over?: boolean }) {
   return (
-    <View style={{ marginTop: 6 }}>
-      <View style={{ height: 8, backgroundColor: colors.surfaceAlt, borderRadius: radius.pill, overflow: 'hidden' }}>
-        <View style={{ width: `${width}%`, height: 8, backgroundColor: good ? colors.positive : colors.negative }} />
-      </View>
-      <View style={{ position: 'relative', height: 0 }}>
-        <View style={{ position: 'absolute', left: `${Math.min(target, 100)}%`, top: -10, width: 2, height: 10, backgroundColor: colors.text }} />
-      </View>
-    </View>
-  );
-}
-
-function DeltaRow({ label, cents, goodWhenPos = true }: { label: string; cents: number; goodWhenPos?: boolean }) {
-  const good = goodWhenPos ? cents >= 0 : cents <= 0;
-  return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm }}>
-      <Text style={{ color: colors.textMuted }}>{label}</Text>
-      <Text style={{ color: good ? colors.positive : colors.negative, fontWeight: '600' }}>{formatSignedCents(cents)}</Text>
+    <View style={{ height: 8, backgroundColor: colors.surfaceAlt, borderRadius: radius.pill, overflow: 'hidden', marginTop: 6 }}>
+      <View style={{ width: `${Math.min(pct, 100)}%`, height: 8, borderRadius: radius.pill, backgroundColor: over ? colors.negative : color }} />
     </View>
   );
 }
 
 export default function InsightsScreen() {
   const { activeMonth } = useActiveMonth();
-  const { snapshot, totals, rollups } = useMonth(activeMonth);
+  const { snapshot } = useMonth(activeMonth);
   const { snapshots } = useAllMonthSnapshots();
 
-  const runway = computeRunway(snapshots);
-  const benchmark = snapshot ? computeBenchmark(snapshot) : null;
+  const [target, setTarget] = useState(0);
+  const [targetInput, setTargetInput] = useState('');
 
-  // Prior-month comparison
-  const priorKey = prevMonth(activeMonth);
-  const [priorTotals, setPriorTotals] = useState<MonthTotals | null>(null);
-  const [delta, setDelta] = useState<MonthDelta | null>(null);
+  const loadTarget = useCallback(async () => {
+    const t = await getSavingsTargetCents();
+    setTarget(t);
+    setTargetInput(t > 0 ? formatCents(t) : '');
+  }, []);
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      const [cur, prior] = await Promise.all([loadMonthSnapshot(activeMonth), loadMonthSnapshot(priorKey)]);
-      if (!alive) return;
-      const hasPrior = prior.income.length > 0 || prior.categories.length > 0;
-      setPriorTotals(hasPrior ? computeTotals(prior) : null);
-      setDelta(hasPrior ? monthDelta(cur, prior) : null);
-    })();
-    return () => { alive = false; };
-  }, [activeMonth, priorKey, snapshots.length]);
+    void loadTarget();
+    return onDataChange(loadTarget);
+  }, [loadTarget]);
 
-  const runwayText =
-    runway.runwayMonths === Infinity ? '∞' : runway.monthsAnalyzed === 0 ? '—' : `${runway.runwayMonths.toFixed(1)} months`;
+  if (!snapshot) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg }}>
+        <MonthDropdown />
+      </View>
+    );
+  }
+
+  const safe = computeSafeToSpend(snapshot);
+  const comp = computeComposition(snapshot);
+  const top = topSpendItems(snapshot, 5);
+  const over = overspentItems(snapshot);
+  const goal = computeSavingsGoal(snapshot, target);
+  const runway = computeRunway(snapshots);
+  const trends = buildTrends(snapshots);
+  const rolloverIn = snapshot.categories
+    .flatMap((c) => c.items)
+    .reduce((s, i) => s + (i.rolloverCents ?? 0), 0);
+
+  const donutSlices = comp.slices.map((s) => ({ value: s.actualCents, color: BUCKET_COLOR[s.bucket] }));
+  const trendLabels = trends.map((t) => formatMonthShort(t.monthYear));
+  const runwayText = runway.runwayMonths === Infinity ? '∞' : runway.monthsAnalyzed === 0 ? '—' : `${runway.runwayMonths.toFixed(1)} mo`;
+
+  const onSaveTarget = async () => {
+    await setSavingsTargetCents(toCents(targetInput));
+    void loadTarget();
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <MonthDropdown safeTop={false} />
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}>
-        {/* Budget vs Actual */}
-        <SectionHeader title={`Budgeted vs Actual — ${formatMonthLabel(activeMonth)}`} />
-        {rollups.length === 0 && <Text style={{ color: colors.textFaint, marginBottom: spacing.md }}>No categories to compare.</Text>}
-        {rollups.map((cat) => (
-          <Card key={cat.id} style={{ marginBottom: spacing.sm }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <Text style={{ color: colors.text, fontWeight: '600' }}>{cat.name}</Text>
-              <VarianceBadge state={cat.state} varianceCents={cat.varianceCents} />
-            </View>
-            <Text style={{ color: colors.textMuted, fontSize: font.size.sm }}>
-              Budget {formatCents(cat.budgetedCents)}  ·  Actual {formatCents(cat.actualCents)}
-            </Text>
-          </Card>
-        ))}
-        {totals && rollups.length > 0 && (
-          <Card style={{ marginBottom: spacing.lg }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ color: colors.text, fontWeight: '700' }}>All categories</Text>
-              <VarianceBadge
-                state={classifyVariance(totals.totalBudgetedCents, totals.totalActualCents)}
-                varianceCents={totals.totalBudgetedCents - totals.totalActualCents}
-              />
-            </View>
-            <Text style={{ color: colors.textMuted, fontSize: font.size.sm, marginTop: 4 }}>
-              Budget {formatCents(totals.totalBudgetedCents)}  ·  Actual {formatCents(totals.totalActualCents)}
-            </Text>
-          </Card>
-        )}
-
-        {/* Month vs prior */}
-        <SectionHeader title={`${formatMonthLabel(activeMonth)} vs ${formatMonthLabel(priorKey)}`} />
-        {delta && priorTotals ? (
-          <Card style={{ marginBottom: spacing.lg }}>
-            <DeltaRow label="Income" cents={delta.totalIncomeDelta} />
-            <DeltaRow label="Budgeted" cents={delta.totalBudgetedDelta} goodWhenPos={false} />
-            <DeltaRow label="Actual spent" cents={delta.totalActualDelta} goodWhenPos={false} />
-            <View style={{ height: 1, backgroundColor: colors.hairline, marginVertical: spacing.sm }} />
-            <DeltaRow label="Net saved" cents={delta.actualNetSavedDelta} />
-          </Card>
-        ) : (
-          <Text style={{ color: colors.textFaint, marginBottom: spacing.lg }}>No prior month data to compare against yet.</Text>
-        )}
-
-        {/* Predictive runway */}
-        <SectionHeader title="Predictive runway" />
+      <MonthDropdown />
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: layout.tabBarSpace }}>
+        {/* SAFE TO SPEND */}
+        <SectionHeader title="Safe to spend" />
         <Card style={{ marginBottom: spacing.lg }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <Gauge size={15} color={colors.textFaint} strokeWidth={2} />
-            <Text style={{ color: colors.textMuted, fontSize: font.size.xs, letterSpacing: font.tracking.caps, fontWeight: '600' }}>
-              EMERGENCY RUNWAY
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <Wallet size={15} color={colors.textFaint} strokeWidth={2} />
+            <Text style={{ color: colors.textMuted, fontSize: font.size.xs, letterSpacing: font.tracking.caps, fontWeight: '600' }}>LEFT TO SPEND</Text>
           </View>
-          <Text style={{ color: colors.primary, fontSize: font.size.xxl, fontWeight: '800', letterSpacing: font.tracking.tight }}>{runwayText}</Text>
-          {runway.monthsAnalyzed > 0 ? (
+          <Text style={{ color: safe.remainingCents >= 0 ? colors.text : colors.negative, fontSize: font.size.xxl, fontWeight: '800', letterSpacing: font.tracking.tight }}>
+            {formatCents(safe.remainingCents)}
+          </Text>
+          {safe.daysLeft > 0 ? (
             <Text style={{ color: colors.textMuted, fontSize: font.size.sm }}>
-              Based on {runway.monthsAnalyzed} month{runway.monthsAnalyzed > 1 ? 's' : ''} of history,
-              your savings of {formatCents(runway.savingsCents)} can cover an average spend of {formatCents(runway.avgMonthlySpendCents)}/month.
+              <Text style={{ color: colors.text, fontWeight: '700' }}>{formatCents(safe.dailyAllowanceCents)}</Text>/day for {safe.daysLeft} days left
             </Text>
           ) : (
-            <Text style={{ color: colors.textMuted, fontSize: font.size.sm }}>Track a couple of months to unlock a runway estimate.</Text>
+            <Text style={{ color: colors.textMuted, fontSize: font.size.sm }}>Month complete.</Text>
+          )}
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.md }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: safe.onPace ? colors.positive : colors.negative }} />
+            <Text style={{ color: colors.textMuted, fontSize: font.size.sm }}>
+              {safe.onPace ? 'On pace' : 'Over pace'} — projected spend {formatCents(safe.projectedSpendCents)}
+            </Text>
+          </View>
+
+          <View style={{ height: 1, backgroundColor: colors.hairline, marginVertical: spacing.md }} />
+          {safe.perBucket.map((b) => (
+            <View key={b.name} style={{ marginBottom: spacing.sm }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ color: colors.text, fontSize: font.size.sm }}>{b.name}</Text>
+                <Text style={{ color: b.remainingCents < 0 ? colors.negative : colors.textMuted, fontSize: font.size.sm }}>
+                  {formatCents(b.remainingCents)} left
+                </Text>
+              </View>
+              <Bar pct={b.budgetCents > 0 ? (b.actualCents / b.budgetCents) * 100 : 0} color={b.bucket ? BUCKET_COLOR[b.bucket] : colors.primary} over={b.remainingCents < 0} />
+            </View>
+          ))}
+        </Card>
+
+        {/* COMPOSITION */}
+        <SectionHeader title="Where it goes" />
+        <Card style={{ marginBottom: spacing.lg }}>
+          {comp.totalSpentCents > 0 ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
+              <DonutChart
+                slices={donutSlices}
+                size={132}
+                center={
+                  <View style={{ alignItems: 'center' }}>
+                    <Text style={{ color: colors.textFaint, fontSize: 10 }}>SPENT</Text>
+                    <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '800' }}>{formatCents(comp.totalSpentCents)}</Text>
+                  </View>
+                }
+              />
+              <View style={{ flex: 1, gap: spacing.sm }}>
+                {comp.slices.map((s) => (
+                  <View key={s.bucket} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: BUCKET_COLOR[s.bucket] }} />
+                    <Text style={{ color: colors.text, fontSize: font.size.sm, flex: 1 }}>{BUCKET_LABEL[s.bucket]}</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: font.size.sm }}>{s.percent.toFixed(0)}%</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : (
+            <View style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
+              <PieIcon size={26} color={colors.textFaint} strokeWidth={1.75} />
+              <Text style={{ color: colors.textMuted, marginTop: spacing.sm }}>No spending recorded yet this month.</Text>
+            </View>
           )}
         </Card>
 
-        {/* 50/30/20 benchmark */}
-        <SectionHeader title="50 / 30 / 20 benchmark" />
-        {benchmark && benchmark.totalIncomeCents > 0 ? (
-          <Card>
-            {benchmark.buckets.map((b) => (
-              <View key={b.bucket} style={{ marginBottom: spacing.md }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ color: colors.text, fontWeight: '600' }}>
-                    {bucketLabel[b.bucket]} <Text style={{ color: colors.textMuted, fontWeight: '400' }}>target {b.targetPercent}%</Text>
-                  </Text>
-                  <Text style={{ color: b.withinTarget ? colors.positive : colors.negative, fontWeight: '600' }}>{b.actualPercent.toFixed(0)}%</Text>
+        {top.length > 0 && (
+          <>
+            <SectionHeader title="Top spending" />
+            <Card style={{ marginBottom: spacing.lg }}>
+              {top.map((it, i) => (
+                <View key={it.id} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: i < top.length - 1 ? spacing.sm : 0 }}>
+                  <Text style={{ color: colors.text, fontSize: font.size.sm }}>{it.name}</Text>
+                  <Text style={{ color: colors.text, fontSize: font.size.sm, fontWeight: '600' }}>{formatCents(it.actualSpentCents)}</Text>
                 </View>
-                <Meter percent={b.actualPercent} target={b.targetPercent} good={b.withinTarget} />
-                <Text style={{ color: colors.textMuted, fontSize: font.size.xs, marginTop: 8 }}>
-                  {formatCents(b.actualCents)} of {formatCents(b.targetCents)} target
-                </Text>
+              ))}
+            </Card>
+          </>
+        )}
+
+        {over.length > 0 && (
+          <Card style={{ marginBottom: spacing.lg, borderColor: colors.negativeSoft }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.sm }}>
+              <AlertTriangle size={15} color={colors.negative} strokeWidth={2} />
+              <Text style={{ color: colors.negative, fontSize: font.size.xs, fontWeight: '700', letterSpacing: font.tracking.caps }}>OVER BUDGET</Text>
+            </View>
+            {over.map((v) => (
+              <View key={v.id} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                <Text style={{ color: colors.text, fontSize: font.size.sm }}>{v.name}</Text>
+                <Text style={{ color: colors.negative, fontSize: font.size.sm, fontWeight: '600' }}>{formatCents(-v.varianceCents)} over</Text>
               </View>
             ))}
-            <View style={{ height: 1, backgroundColor: colors.hairline, marginVertical: spacing.sm }} />
-            <Text style={{ color: colors.textMuted, fontSize: font.size.sm }}>
-              Savings rate this month: <Text style={{ color: colors.text, fontWeight: '700' }}>{benchmark.savingsRatePercent.toFixed(0)}%</Text>
-            </Text>
-            {benchmark.untaggedActualCents > 0 && (
-              <Text style={{ color: colors.warning, fontSize: font.size.xs, marginTop: 4 }}>
-                {formatCents(benchmark.untaggedActualCents)} of spending is in untagged categories — tag categories as Needs/Wants/Savings for a complete picture.
-              </Text>
-            )}
           </Card>
+        )}
+
+        {/* SAVINGS GOAL */}
+        <SectionHeader title="Savings goal" />
+        <Card style={{ marginBottom: spacing.lg }}>
+          {target > 0 ? (
+            <>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                <Target size={15} color={colors.textFaint} strokeWidth={2} />
+                <Text style={{ color: colors.textMuted, fontSize: font.size.xs, letterSpacing: font.tracking.caps, fontWeight: '600' }}>
+                  SAVED THIS MONTH
+                </Text>
+              </View>
+              <Text style={{ color: goal.met ? colors.positive : colors.text, fontSize: font.size.xl, fontWeight: '800' }}>
+                {formatCents(goal.savedCents)} <Text style={{ color: colors.textFaint, fontSize: font.size.sm, fontWeight: '500' }}>of {formatCents(goal.targetCents)}</Text>
+              </Text>
+              <Bar pct={goal.percent} color={colors.primary} />
+              <Text style={{ color: colors.textMuted, fontSize: font.size.sm, marginTop: 8 }}>
+                {goal.met ? '🎯 Goal met!' : `${formatCents(goal.shortfallCents)} to go (${goal.percent.toFixed(0)}%)`}
+              </Text>
+            </>
+          ) : (
+            <Text style={{ color: colors.textMuted, fontSize: font.size.sm, marginBottom: spacing.md }}>
+              Set a monthly savings target to track your progress.
+            </Text>
+          )}
+          <View style={{ marginTop: spacing.md }}>
+            <Field label="Monthly savings target" value={targetInput} onChangeText={setTargetInput} placeholder="0.00" keyboardType="decimal-pad" />
+            <Button title="Save goal" onPress={onSaveTarget} variant="secondary" />
+          </View>
+        </Card>
+
+        {/* Runway + rollover */}
+        <Card style={{ marginBottom: spacing.lg }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Gauge size={14} color={colors.textFaint} strokeWidth={2} />
+                <Text style={{ color: colors.textMuted, fontSize: font.size.xs, fontWeight: '600' }}>RUNWAY</Text>
+              </View>
+              <Text style={{ color: colors.primary, fontSize: font.size.lg, fontWeight: '800' }}>{runwayText}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.textMuted, fontSize: font.size.xs, fontWeight: '600' }}>ROLLOVER CARRIED</Text>
+              <Text style={{ color: colors.text, fontSize: font.size.lg, fontWeight: '800' }}>{formatCents(rolloverIn)}</Text>
+            </View>
+          </View>
+        </Card>
+
+        {/* TRENDS */}
+        <SectionHeader title="Trends" />
+        {trends.length >= 2 ? (
+          <>
+            <Card style={{ marginBottom: spacing.lg }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.sm }}>
+                <TrendingUp size={15} color={colors.textFaint} strokeWidth={2} />
+                <Text style={{ color: colors.textMuted, fontSize: font.size.xs, fontWeight: '700', letterSpacing: font.tracking.caps }}>NET SAVED / MONTH</Text>
+              </View>
+              <LineChart values={trends.map((t) => t.netSavedCents / 100)} labels={trendLabels} color={colors.primary} />
+            </Card>
+            <Card>
+              <Text style={{ color: colors.textMuted, fontSize: font.size.xs, fontWeight: '700', letterSpacing: font.tracking.caps, marginBottom: spacing.sm }}>SAVINGS RATE %</Text>
+              <LineChart values={trends.map((t) => t.savingsRatePercent)} labels={trendLabels} color="#7C5CFF" showZero />
+            </Card>
+          </>
         ) : (
-          <Text style={{ color: colors.textFaint }}>Add income and tagged categories to see the benchmark.</Text>
+          <Text style={{ color: colors.textFaint }}>Trends unlock after a second month of history.</Text>
         )}
       </ScrollView>
     </View>

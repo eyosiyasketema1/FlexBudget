@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as DocumentPicker from 'expo-document-picker';
-import { Settings2, RotateCcw, ShieldCheck, Download, Upload, Archive, Sparkles, ChevronRight } from 'lucide-react-native';
+import { Settings2, RotateCcw, ShieldCheck, Download, Upload, Archive, Tags, ChevronRight } from 'lucide-react-native';
 
 import Card from '@/components/Card';
 import Field from '@/components/Field';
@@ -119,7 +119,7 @@ export default function SettingsScreen() {
     >
       <ScreenTitle title="Settings" icon={Settings2} />
 
-      <Pressable onPress={() => nav.navigate('Insights')} accessibilityRole="button" accessibilityLabel="Open Insights">
+      <Pressable onPress={() => nav.navigate('Budget')} accessibilityRole="button" accessibilityLabel="Expense category management">
         <Card style={{ marginBottom: spacing.lg, flexDirection: 'row', alignItems: 'center' }}>
           <View
             style={{
@@ -127,12 +127,12 @@ export default function SettingsScreen() {
               backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <Sparkles size={20} color={colors.primary} strokeWidth={2} />
+            <Tags size={20} color={colors.primary} strokeWidth={2} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.text, fontWeight: '700', fontSize: font.size.md }}>Insights</Text>
+            <Text style={{ color: colors.text, fontWeight: '700', fontSize: font.size.md }}>Expense Category Management</Text>
             <Text style={{ color: colors.textFaint, fontSize: font.size.xs }}>
-              Budget vs actual, trends, runway & 50/30/20
+              Add, edit, and organize categories & items
             </Text>
           </View>
           <ChevronRight size={20} color={colors.textFaint} />

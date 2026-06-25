@@ -11,7 +11,7 @@ export interface IncomeInput {
   isArchived?: boolean;
 }
 
-export type Bucket = 'needs' | 'wants' | 'savings';
+export type Bucket = 'needs' | 'wants' | 'savings' | 'church';
 
 export interface ItemInput {
   id: string;

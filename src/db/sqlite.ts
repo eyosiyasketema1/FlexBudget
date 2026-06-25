@@ -7,8 +7,8 @@ import * as SQLite from 'expo-sqlite';
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
-  // v3 db file: fresh start — full 35,000 zero-based template, 0 spent.
-  if (!dbPromise) dbPromise = SQLite.openDatabaseAsync('flexbudget_v3.db');
+  // v4 db file: 50/20/20/10 template (Needs/Wants/Savings/Church), 0 spent.
+  if (!dbPromise) dbPromise = SQLite.openDatabaseAsync('flexbudget_v4.db');
   return dbPromise;
 }
 
@@ -59,6 +59,11 @@ CREATE TABLE IF NOT EXISTS expense_items (
 );
 CREATE INDEX IF NOT EXISTS idx_item_cat ON expense_items(category_id);
 CREATE INDEX IF NOT EXISTS idx_item_month ON expense_items(month_year);
+
+CREATE TABLE IF NOT EXISTS settings (
+  key   TEXT PRIMARY KEY NOT NULL,
+  value TEXT
+);
 `;
 
 export async function initDatabase(): Promise<void> {
