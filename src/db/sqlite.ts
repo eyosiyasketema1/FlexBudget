@@ -18,6 +18,7 @@ PRAGMA journal_mode = WAL;
 CREATE TABLE IF NOT EXISTS months (
   month_year   TEXT PRIMARY KEY NOT NULL,
   is_locked    INTEGER NOT NULL DEFAULT 0,
+  saved_cents  INTEGER,            -- confirmed amount saved for the period (NULL = not yet confirmed)
   created_at   INTEGER NOT NULL
 );
 
@@ -64,11 +65,27 @@ CREATE TABLE IF NOT EXISTS settings (
   key   TEXT PRIMARY KEY NOT NULL,
   value TEXT
 );
+
+CREATE TABLE IF NOT EXISTS expense_entries (
+  id           TEXT PRIMARY KEY NOT NULL,
+  item_id      TEXT NOT NULL,
+  month_year   TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL,
+  reason       TEXT,
+  created_at   INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_entry_item ON expense_entries(item_id);
+CREATE INDEX IF NOT EXISTS idx_entry_month ON expense_entries(month_year);
 `;
 
 export async function initDatabase(): Promise<void> {
   const db = await getDb();
   await db.execAsync(DDL);
+  // Lightweight migration: add months.saved_cents to existing databases.
+  const cols = await db.getAllAsync<{ name: string }>('PRAGMA table_info(months)');
+  if (!cols.some((c) => c.name === 'saved_cents')) {
+    await db.execAsync('ALTER TABLE months ADD COLUMN saved_cents INTEGER');
+  }
 }
 
 // Convenience wrappers so callers don't repeat getDb().

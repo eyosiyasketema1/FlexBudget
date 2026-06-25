@@ -91,7 +91,7 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
 
       {/* Circular add-expense button — same height as the nav pill */}
       <Pressable
-        onPress={() => navigation.navigate('ItemForm' as never)}
+        onPress={() => navigation.navigate('RecordExpense' as never)}
         accessibilityRole="button"
         accessibilityLabel="Add expense"
         android_ripple={null}

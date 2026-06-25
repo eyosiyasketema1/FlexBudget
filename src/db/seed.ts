@@ -1,7 +1,24 @@
-import { getDb, all, first, run, makeId } from '@/db';
-import { currentMonthYear } from '@/utils/date';
+import { getDb, all, first, run, makeId, notifyChange } from '@/db';
+import { currentPeriodKey } from '@/utils/date';
 import { SALARY_INCOME, BUDGET_TEMPLATE } from './template';
 import { copyBaselineToNewMonth } from '@/data/repository';
+
+/**
+ * Wipe ALL data to a blank start: no income, no categories, no expenses, no
+ * history. Leaves a single EMPTY current month so the app doesn't auto-reseed
+ * the template (ensureCurrentMonth only seeds when there are zero months).
+ */
+export async function resetAllData(): Promise<void> {
+  const db = await getDb();
+  const my = currentPeriodKey();
+  await db.withTransactionAsync(async () => {
+    await db.execAsync(
+      'DELETE FROM expense_entries; DELETE FROM expense_items; DELETE FROM expense_categories; DELETE FROM income_items; DELETE FROM months; DELETE FROM settings;',
+    );
+    await db.runAsync('INSERT INTO months (month_year, is_locked, created_at) VALUES (?, 0, ?)', [my, Date.now()]);
+  });
+  notifyChange();
+}
 
 // Seed a month from the fixed budget template (salary + Needs/Wants/Savings).
 export async function seedTemplate(monthYear: string): Promise<void> {
@@ -40,20 +57,34 @@ export async function seedTemplate(monthYear: string): Promise<void> {
  *   actuals reset, salary income copied), so each new month "arrives" ready.
  * Called on every launch, so reopening the app in a new month creates it.
  */
+/**
+ * Returns the period to show as "current", creating it only when it's a genuine
+ * forward rollover. Guarantees against the old data-clearing bug:
+ *  - first ever launch (no data) → seed the template
+ *  - current period already exists → use it
+ *  - current period is strictly AFTER all existing periods → carry the latest
+ *    forward (real budgets, actuals reset) — never the dummy template
+ *  - current period is at/ before existing data (e.g. the tail of a pay cycle)
+ *    → DON'T create anything; stay on the latest existing period
+ */
 export async function ensureCurrentMonth(): Promise<string> {
-  const my = currentMonthYear();
+  const my = currentPeriodKey();
   const exists = await first('SELECT month_year FROM months WHERE month_year = ?', [my]);
   if (exists) return my;
 
   const latest = await first<{ month_year: string }>(
     'SELECT month_year FROM months ORDER BY month_year DESC LIMIT 1',
   );
-  if (latest && latest.month_year < my) {
-    await copyBaselineToNewMonth(latest.month_year, my);
-  } else {
+  if (!latest) {
     await seedTemplate(my);
+    return my;
   }
-  return my;
+  if (my > latest.month_year) {
+    await copyBaselineToNewMonth(latest.month_year, my);
+    return my;
+  }
+  // Don't create a backwards/duplicate period — keep the user on real data.
+  return latest.month_year;
 }
 
 /**

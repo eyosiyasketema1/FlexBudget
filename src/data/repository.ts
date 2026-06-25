@@ -1,5 +1,5 @@
 import { all, first, run, getDb, makeId, bool, toInt, notifyChange } from '@/db';
-import { nextMonth } from '@/utils/date';
+import { nextMonth, currentPeriodKey } from '@/utils/date';
 import { rolloverCarry } from '@/calc/engine';
 import type { Bucket } from '@/calc/types';
 
@@ -15,6 +15,34 @@ async function assertUnlocked(monthYear: string): Promise<void> {
   if (bool(row?.is_locked)) {
     throw new Error(`Month ${monthYear} is locked and cannot be edited.`);
   }
+}
+
+/**
+ * Zero-based balancing: keep the budget total equal to income by adjusting the
+ * Savings remainder. The "Savings" item in the savings bucket is auto-set to
+ * income − (every other item's budget), so the plan always sums to income.
+ * Does nothing if there's no such remainder item. Caller handles notifyChange.
+ */
+export async function rebalanceSavings(monthYear: string): Promise<void> {
+  const remainderItem = await first<{ id: string }>(
+    `SELECT ei.id FROM expense_items ei
+       JOIN expense_categories ec ON ec.id = ei.category_id
+      WHERE ei.month_year = ? AND ei.is_archived = 0 AND ei.name = 'Savings' AND ec.bucket = 'savings'
+      ORDER BY ei.sort_order LIMIT 1`,
+    [monthYear],
+  );
+  if (!remainderItem) return;
+
+  const inc = await first<{ s: number }>(
+    'SELECT COALESCE(SUM(amount_cents),0) AS s FROM income_items WHERE month_year = ? AND is_archived = 0',
+    [monthYear],
+  );
+  const others = await first<{ s: number }>(
+    'SELECT COALESCE(SUM(budget_cap_cents),0) AS s FROM expense_items WHERE month_year = ? AND is_archived = 0 AND id != ?',
+    [monthYear, remainderItem.id],
+  );
+  const remainder = Math.max(0, (inc?.s ?? 0) - (others?.s ?? 0));
+  await run('UPDATE expense_items SET budget_cap_cents = ? WHERE id = ?', [remainder, remainderItem.id]);
 }
 
 export async function ensureMonth(monthYear: string): Promise<void> {
@@ -63,6 +91,7 @@ export async function moveItemToCategory(itemId: string, newCategoryId: string) 
   await assertUnlocked(row.monthYear);
   const cnt = await first<{ n: number }>('SELECT COUNT(*) AS n FROM expense_items WHERE category_id = ?', [newCategoryId]);
   await run('UPDATE expense_items SET category_id = ?, sort_order = ? WHERE id = ?', [newCategoryId, cnt?.n ?? 0, itemId]);
+  await rebalanceSavings(row.monthYear);
   notifyChange();
 }
 
@@ -76,6 +105,7 @@ export async function addIncome(
     'INSERT INTO income_items (id, month_year, label, category, amount_cents, is_archived, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)',
     [makeId('INC'), monthYear, data.label, data.category, data.amountCents, Date.now()],
   );
+  await rebalanceSavings(monthYear);
   notifyChange();
 }
 
@@ -89,6 +119,7 @@ export async function updateIncome(
   await run('UPDATE income_items SET label = ?, category = ?, amount_cents = ? WHERE id = ?', [
     data.label, data.category, data.amountCents, id,
   ]);
+  await rebalanceSavings(row.monthYear);
   notifyChange();
 }
 
@@ -97,6 +128,7 @@ export async function archiveIncome(id: string) {
   if (!row) return;
   await assertUnlocked(row.monthYear);
   await run('UPDATE income_items SET is_archived = 1 WHERE id = ?', [id]);
+  await rebalanceSavings(row.monthYear);
   notifyChange();
 }
 
@@ -137,6 +169,7 @@ export async function archiveCategory(id: string) {
   await assertUnlocked(row.monthYear);
   await run('UPDATE expense_categories SET is_archived = 1 WHERE id = ?', [id]);
   await run('UPDATE expense_items SET is_archived = 1 WHERE category_id = ?', [id]);
+  await rebalanceSavings(row.monthYear);
   notifyChange();
 }
 
@@ -155,6 +188,7 @@ export async function addItem(
     'INSERT INTO expense_items (id, category_id, month_year, name, budget_cap_cents, actual_spent_cents, rollover_enabled, rollover_cents, is_archived, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)',
     [makeId('E'), categoryId, monthYear, data.name, data.budgetCapCents, data.actualSpentCents, toInt(!!data.rolloverEnabled), c?.n ?? 0, Date.now()],
   );
+  await rebalanceSavings(monthYear);
   notifyChange();
 }
 
@@ -175,6 +209,7 @@ export async function updateItem(
       data.name, data.budgetCapCents, data.actualSpentCents, id,
     ]);
   }
+  await rebalanceSavings(row.monthYear);
   notifyChange();
 }
 
@@ -192,6 +227,7 @@ export async function archiveItem(id: string) {
   if (!row) return;
   await assertUnlocked(row.monthYear);
   await run('UPDATE expense_items SET is_archived = 1 WHERE id = ?', [id]);
+  await rebalanceSavings(row.monthYear);
   notifyChange();
 }
 
@@ -246,12 +282,106 @@ export async function setSavingsTargetCents(cents: number): Promise<void> {
   await setSetting(SAVINGS_TARGET_KEY, String(Math.max(0, Math.round(cents))));
 }
 
+// ── Confirmed savings (per period) ────────────────────────────────────────
+/** Total confirmed savings across all periods. */
+export async function getTotalSaved(): Promise<number> {
+  const r = await first<{ s: number }>('SELECT COALESCE(SUM(saved_cents),0) AS s FROM months WHERE saved_cents IS NOT NULL');
+  return r?.s ?? 0;
+}
+
+/** Record the amount actually saved for a period (confirms it). */
+export async function setMonthSaved(monthYear: string, cents: number): Promise<void> {
+  await run('UPDATE months SET saved_cents = ? WHERE month_year = ?', [Math.max(0, Math.round(cents)), monthYear]);
+  notifyChange();
+}
+
+export interface EndedPeriod { monthYear: string; plannedCents: number }
+
+/** Past periods (already ended) that haven't had their savings confirmed yet. */
+export async function endedUnconfirmedPeriods(today: Date = new Date()): Promise<EndedPeriod[]> {
+  const cur = currentPeriodKey(today);
+  const rows = await all<{ month_year: string }>(
+    'SELECT month_year FROM months WHERE saved_cents IS NULL ORDER BY month_year ASC',
+  );
+  const result: EndedPeriod[] = [];
+  for (const r of rows) {
+    if (r.month_year >= cur) continue; // current or future period — not ended yet
+    const planned = await first<{ s: number }>(
+      `SELECT COALESCE(SUM(ei.budget_cap_cents),0) AS s FROM expense_items ei
+         JOIN expense_categories ec ON ec.id = ei.category_id
+        WHERE ei.month_year = ? AND ei.is_archived = 0 AND ec.bucket = 'savings'`,
+      [r.month_year],
+    );
+    result.push({ monthYear: r.month_year, plannedCents: planned?.s ?? 0 });
+  }
+  return result;
+}
+
+const CYCLE_KEY = 'cycle_start_day';
+export async function getCycleStartDayStored(): Promise<number> {
+  const v = await getSetting(CYCLE_KEY);
+  const n = v ? parseInt(v, 10) : 1;
+  return Number.isFinite(n) && n >= 1 && n <= 28 ? n : 1;
+}
+export async function setCycleStartDayStored(day: number): Promise<void> {
+  await setSetting(CYCLE_KEY, String(Math.min(28, Math.max(1, Math.floor(day) || 1))));
+}
+
 /** Non-archived categories for a month (for the expense-add picker). */
 export async function listActiveCategories(monthYear: string): Promise<{ id: string; name: string }[]> {
   return all<{ id: string; name: string }>(
     'SELECT id, name FROM expense_categories WHERE month_year = ? AND is_archived = 0 ORDER BY sort_order ASC',
     [monthYear],
   );
+}
+
+// ── Recording payments (expense entries / ledger) ─────────────────────────
+export interface SubcategoryRow {
+  id: string; name: string; categoryId: string; categoryName: string; bucket: string | null;
+}
+
+/** All sub-categories for a month, with their main category (for the picker). */
+export async function listSubcategories(monthYear: string): Promise<SubcategoryRow[]> {
+  const rows = await all<any>(
+    `SELECT ei.id, ei.name, ei.category_id AS categoryId, ec.name AS categoryName, ec.bucket AS bucket
+       FROM expense_items ei JOIN expense_categories ec ON ec.id = ei.category_id
+      WHERE ei.month_year = ? AND ei.is_archived = 0 AND ec.is_archived = 0
+      ORDER BY ec.sort_order, ei.sort_order`,
+    [monthYear],
+  );
+  return rows.map((r) => ({ id: r.id, name: r.name, categoryId: r.categoryId, categoryName: r.categoryName, bucket: r.bucket ?? null }));
+}
+
+/** Record a payment against a sub-category: logs it and adds to actual spent. */
+export async function recordExpense(itemId: string, amountCents: number, reason?: string) {
+  const row = await getItem(itemId);
+  if (!row) return;
+  await assertUnlocked(row.monthYear);
+  await run(
+    'INSERT INTO expense_entries (id, item_id, month_year, amount_cents, reason, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [makeId('TX'), itemId, row.monthYear, amountCents, reason?.trim() || null, Date.now()],
+  );
+  await run('UPDATE expense_items SET actual_spent_cents = actual_spent_cents + ? WHERE id = ?', [amountCents, itemId]);
+  notifyChange();
+}
+
+export interface ExpenseEntry { id: string; amountCents: number; reason: string | null; createdAt: number; }
+export async function listExpenseEntries(itemId: string): Promise<ExpenseEntry[]> {
+  const rows = await all<any>('SELECT * FROM expense_entries WHERE item_id = ? ORDER BY created_at DESC', [itemId]);
+  return rows.map((r) => ({ id: r.id, amountCents: r.amount_cents, reason: r.reason, createdAt: r.created_at }));
+}
+
+/** Delete a recorded payment and subtract it back out of the item's spend. */
+export async function deleteExpenseEntry(entryId: string) {
+  const e = await first<{ item_id: string; amount_cents: number; month_year: string }>(
+    'SELECT item_id, amount_cents, month_year FROM expense_entries WHERE id = ?',
+    [entryId],
+  );
+  if (!e) return;
+  await assertUnlocked(e.month_year);
+  await run('UPDATE expense_items SET actual_spent_cents = max(0, actual_spent_cents - ?) WHERE id = ?', [e.amount_cents, e.item_id]);
+  await run('DELETE FROM expense_entries WHERE id = ?', [entryId]);
+  notifyChange();
 }
 
 // ── Month lifecycle ─────────────────────────────────────────────────────────
@@ -324,6 +454,7 @@ export async function copyBaselineToNewMonth(
     }
   });
 
+  await rebalanceSavings(toMonth);
   notifyChange();
   return toMonth;
 }

@@ -1,7 +1,7 @@
 import type { Cents } from '@/utils/money';
 import type { MonthSnapshot, Bucket, ItemVariance } from './types';
 import { computeTotals, computeBenchmark, itemVariance } from './engine';
-import { daysInMonth, currentMonthYear } from '@/utils/date';
+import { daysInPeriod, daysElapsedInPeriod, currentPeriodKey } from '@/utils/date';
 
 // ─────────────────────────────────────────────────────────────────────────
 // Analytics — pure functions over MonthSnapshot(s). No DB, no React.
@@ -47,13 +47,8 @@ export interface SafeToSpend {
  */
 export function computeSafeToSpend(snapshot: MonthSnapshot, today: Date = new Date()): SafeToSpend {
   const t = computeTotals(snapshot);
-  const dim = daysInMonth(snapshot.monthYear);
-  const cur = currentMonthYear(today);
-
-  let daysElapsed: number;
-  if (snapshot.monthYear === cur) daysElapsed = Math.min(today.getDate(), dim);
-  else if (snapshot.monthYear < cur) daysElapsed = dim;
-  else daysElapsed = 0;
+  const dim = daysInPeriod(snapshot.monthYear);
+  const daysElapsed = daysElapsedInPeriod(snapshot.monthYear, today);
   const daysLeft = Math.max(dim - daysElapsed, 0);
 
   const remaining = t.totalBudgetedCents - t.totalActualCents;
@@ -217,6 +212,98 @@ export function computeBudgetAllocation(snapshot: MonthSnapshot): BudgetAllocati
     unallocatedCents: income - totalBudgeted,
     buckets,
   };
+}
+
+// ── Zero-based Savings rebalance (pure mirror of repository.rebalanceSavings) ──
+
+/**
+ * Returns a copy of the snapshot with the Savings remainder item (the item
+ * named "Savings" in a 'savings' bucket) set so the TOTAL budget equals income.
+ * Savings = income − (every other non-archived item's budget), clamped ≥ 0.
+ * Anything extra you allocate (e.g. a "Sacco saving") is taken OUT of the
+ * Savings remainder rather than pushing the total above income.
+ */
+export function rebalanceSavingsSnapshot(snapshot: MonthSnapshot): MonthSnapshot {
+  const income = sum(snapshot.income.filter(notArchived).map((i) => i.amountCents));
+
+  let remainderItemId: string | null = null;
+  for (const c of snapshot.categories) {
+    if (c.bucket !== 'savings' || c.isArchived) continue;
+    const it = c.items.find((i) => i.name === 'Savings' && !i.isArchived);
+    if (it) { remainderItemId = it.id; break; }
+  }
+  if (!remainderItemId) return snapshot;
+
+  let others = 0;
+  for (const c of snapshot.categories.filter(notArchived)) {
+    for (const it of c.items.filter(notArchived)) {
+      if (it.id !== remainderItemId) others += it.budgetCapCents;
+    }
+  }
+  const remainder = Math.max(0, income - others);
+
+  return {
+    ...snapshot,
+    categories: snapshot.categories.map((c) => ({
+      ...c,
+      items: c.items.map((it) => (it.id === remainderItemId ? { ...it, budgetCapCents: remainder } : it)),
+    })),
+  };
+}
+
+// ── Total savings + rollover pool ─────────────────────────────────────────
+
+export interface RolloverEntry {
+  monthYear: string;
+  categoryName: string;
+  bucket: Bucket | null;
+  amountCents: Cents; // leftover (budget − actual); >0 under, <0 over
+}
+
+export interface SavingsRollover {
+  totalSavingsCents: Cents; // accumulated money allocated to the Savings bucket
+  rolloverTotalCents: Cents; // accumulated leftover from past months (non-savings)
+  entries: RolloverEntry[]; // where the rollover came from (newest first)
+}
+
+/**
+ * Total Savings = sum of every month's Savings-bucket budget (what you set
+ * aside). Rollover = the leftover (unspent) from non-savings categories in
+ * months that have already passed — "any money left at month end lands here",
+ * with a per-month, per-category breakdown.
+ */
+export function computeSavingsRollover(snapshots: MonthSnapshot[], today: Date = new Date()): SavingsRollover {
+  const cur = currentPeriodKey(today);
+  let totalSavings = 0;
+  let rolloverTotal = 0;
+  const entries: RolloverEntry[] = [];
+
+  for (const s of snapshots) {
+    for (const c of s.categories.filter(notArchived)) {
+      const items = c.items.filter(notArchived);
+      const budget = sum(items.map((i) => i.budgetCapCents));
+      const actual = sum(items.map((i) => i.actualSpentCents));
+      if (c.bucket === 'savings') {
+        totalSavings += budget;
+      } else if (s.monthYear < cur) {
+        const leftover = budget - actual;
+        if (leftover !== 0) {
+          entries.push({ monthYear: s.monthYear, categoryName: c.name, bucket: c.bucket ?? null, amountCents: leftover });
+          rolloverTotal += leftover;
+        }
+      }
+    }
+  }
+  entries.sort((a, b) => b.monthYear.localeCompare(a.monthYear) || b.amountCents - a.amountCents);
+  return { totalSavingsCents: totalSavings, rolloverTotalCents: rolloverTotal, entries };
+}
+
+/** Per-month rollover totals (leftover that month contributed to the pool). */
+export function rolloverByMonth(snapshots: MonthSnapshot[], today: Date = new Date()): Record<string, Cents> {
+  const { entries } = computeSavingsRollover(snapshots, today);
+  const map: Record<string, Cents> = {};
+  for (const e of entries) map[e.monthYear] = (map[e.monthYear] ?? 0) + e.amountCents;
+  return map;
 }
 
 // ── Trends over months ─────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, Dimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, ScrollView, Pressable, Dimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { AccountCard, AddIncomeCard } from './AccountCard';
 import { colors, spacing } from '@/theme/theme';
 
@@ -19,7 +19,7 @@ export default function IncomeCarousel({
   hidden,
   onToggleHidden,
   onAddIncome,
-  onPressIncome,
+  onEditIncome,
 }: {
   incomes: IncomeItem[];
   spentCents: number;
@@ -27,6 +27,7 @@ export default function IncomeCarousel({
   hidden: boolean;
   onToggleHidden: () => void;
   onAddIncome: () => void;
+  onEditIncome: (id: string) => void;
 }) {
   const pageWidth = Dimensions.get('window').width;
   const cardWidth = pageWidth - spacing.lg * 2;
@@ -51,7 +52,7 @@ export default function IncomeCarousel({
       >
         {incomes.map((inc) => (
           <View key={inc.id} style={{ width: pageWidth, paddingHorizontal: spacing.lg }}>
-            <View style={{ width: cardWidth }}>
+            <Pressable style={{ width: cardWidth }} onPress={() => onEditIncome(inc.id)} accessibilityRole="button" accessibilityLabel={`Edit ${inc.label}`}>
               <AccountCard
                 title={inc.label}
                 amountCents={inc.amountCents}
@@ -60,7 +61,7 @@ export default function IncomeCarousel({
                 hidden={hidden}
                 onToggleHidden={onToggleHidden}
               />
-            </View>
+            </Pressable>
           </View>
         ))}
         <View style={{ width: pageWidth, paddingHorizontal: spacing.lg, justifyContent: 'center' }}>

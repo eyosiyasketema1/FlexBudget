@@ -4,7 +4,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 
 import { all, getDb, notifyChange } from '@/db';
-import { buildPayload, encryptPayload, decryptPayload, BackupData } from './backupCodec';
+import { buildPayload, encryptPayload, plainPayload, decryptPayload, isPlainBackup, parsePlainBackup, BackupData } from './backupCodec';
 
 // Encrypted local backup. Serializes the whole on-device SQLite database to
 // JSON, AES-encrypts it with a passphrase, and writes a file the user can move
@@ -21,13 +21,20 @@ async function serializeAll(): Promise<BackupData> {
   return { months, income, categories, items };
 }
 
-/** Export an AES-encrypted backup file and open the share sheet. */
+/**
+ * Export a backup file and open the share sheet. The passphrase is OPTIONAL:
+ * blank → a quick unencrypted backup; set → AES-encrypted.
+ */
 export async function exportEncryptedBackup(passphrase: string): Promise<string> {
+  const pass = passphrase.trim();
+  if (pass.length > 0 && pass.length < 6) {
+    throw new Error('Use a passphrase of at least 6 characters, or leave it blank.');
+  }
   const payload = buildPayload(await serializeAll());
-  const cipher = encryptPayload(payload, passphrase);
+  const content = pass.length > 0 ? encryptPayload(payload, pass) : plainPayload(payload);
   const stamp = new Date().toISOString().slice(0, 10);
   const uri = `${FileSystem.documentDirectory}flexbudget-backup-${stamp}.fbk`;
-  await FileSystem.writeAsStringAsync(uri, cipher, { encoding: FileSystem.EncodingType.UTF8 });
+  await FileSystem.writeAsStringAsync(uri, content, { encoding: FileSystem.EncodingType.UTF8 });
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(uri, { mimeType: 'application/octet-stream', dialogTitle: 'FlexBudget backup' });
   }
@@ -35,12 +42,19 @@ export async function exportEncryptedBackup(passphrase: string): Promise<string>
 }
 
 /**
- * Decrypt and restore a backup file. REPLACES all current local data after a
- * successful decrypt (the caller should confirm with the user first).
+ * Restore a backup file. Auto-detects whether it's plain or encrypted — only
+ * encrypted files need the passphrase. REPLACES all current local data (the
+ * caller should confirm with the user first).
  */
 export async function importEncryptedBackup(fileUri: string, passphrase: string): Promise<void> {
-  const cipher = await FileSystem.readAsStringAsync(fileUri, { encoding: FileSystem.EncodingType.UTF8 });
-  const payload = decryptPayload(cipher, passphrase);
+  const content = await FileSystem.readAsStringAsync(fileUri, { encoding: FileSystem.EncodingType.UTF8 });
+  let payload;
+  if (isPlainBackup(content)) {
+    payload = parsePlainBackup(content);
+  } else {
+    if (!passphrase.trim()) throw new Error('This backup is encrypted — enter its passphrase to restore.');
+    payload = decryptPayload(content, passphrase.trim());
+  }
   const d = payload.data as BackupData;
 
   const db = await getDb();

@@ -10,14 +10,20 @@ import FloatingTabBar from '@/navigation/FloatingTabBar';
 import TimelineScreen from '@/screens/TimelineScreen';
 import BudgetScreen from '@/screens/BudgetScreen';
 import InsightsScreen from '@/screens/InsightsScreen';
+import RolloverScreen from '@/screens/RolloverScreen';
+import MonthDetailScreen from '@/screens/MonthDetailScreen';
 import SettingsScreen from '@/screens/SettingsScreen';
 import IncomeFormScreen from '@/screens/forms/IncomeFormScreen';
 import CategoryFormScreen from '@/screens/forms/CategoryFormScreen';
 import ItemFormScreen from '@/screens/forms/ItemFormScreen';
+import RecordExpenseScreen from '@/screens/forms/RecordExpenseScreen';
 
 export type RootStackParamList = {
   Tabs: undefined;
   Budget: undefined;
+  Rollover: undefined;
+  MonthDetail: { monthYear: string };
+  RecordExpense: { itemId?: string } | undefined;
   IncomeForm: { incomeId?: string } | undefined;
   CategoryForm: { categoryId?: string } | undefined;
   ItemForm: { categoryId?: string; itemId?: string } | undefined;
@@ -70,7 +76,10 @@ export default function RootNavigator() {
       >
         <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
         <Stack.Screen name="Budget" component={BudgetScreen} options={{ title: 'Expense Categories' }} />
+        <Stack.Screen name="Rollover" component={RolloverScreen} options={{ title: 'Rollover' }} />
+        <Stack.Screen name="MonthDetail" component={MonthDetailScreen} options={{ title: 'Month' }} />
         <Stack.Group screenOptions={{ presentation: 'modal' }}>
+          <Stack.Screen name="RecordExpense" component={RecordExpenseScreen} options={{ title: 'Add Expense' }} />
           <Stack.Screen name="IncomeForm" component={IncomeFormScreen} options={{ title: 'Income' }} />
           <Stack.Screen name="CategoryForm" component={CategoryFormScreen} options={{ title: 'Category' }} />
           <Stack.Screen

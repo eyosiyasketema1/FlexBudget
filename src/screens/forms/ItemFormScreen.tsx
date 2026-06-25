@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, Alert, View, Text, Switch, Pressable, Modal } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScrollView, Alert, View, Text, Switch, Pressable } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { ChevronDown, Check } from 'lucide-react-native';
+import { ChevronDown } from 'lucide-react-native';
 
 import Field from '@/components/Field';
 import Button from '@/components/Button';
+import BottomSheet, { SheetOption } from '@/components/BottomSheet';
 import { colors, spacing, font, radius } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { addItem, updateItem, archiveItem, getItem, listActiveCategories, moveItemToCategory } from '@/data/repository';
@@ -14,7 +14,6 @@ import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 export default function ItemFormScreen() {
   const nav = useNavigation();
-  const insets = useSafeAreaInsets();
   const route = useRoute<RouteProp<RootStackParamList, 'ItemForm'>>();
   const categoryId = route.params?.categoryId;
   const itemId = route.params?.itemId;
@@ -135,42 +134,11 @@ export default function ItemFormScreen() {
       {itemId && <Button title="Archive" onPress={onDelete} variant="danger" style={{ marginTop: spacing.sm }} />}
 
       {/* Bottom-sheet category picker */}
-      <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
-        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }} onPress={() => setPickerOpen(false)}>
-          <Pressable
-            onPress={() => {}}
-            style={{
-              backgroundColor: colors.surface,
-              borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg,
-              paddingBottom: insets.bottom + spacing.md, paddingTop: spacing.sm,
-            }}
-          >
-            <View style={{ alignItems: 'center', paddingVertical: spacing.sm }}>
-              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
-            </View>
-            <Text style={{ color: colors.textMuted, fontSize: font.size.xs, fontWeight: '700', letterSpacing: font.tracking.caps, textTransform: 'uppercase', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}>
-              {itemId ? 'Move to main category' : 'Main category'}
-            </Text>
-            {categories.map((c) => {
-              const selected = c.id === chosenCat;
-              return (
-                <Pressable
-                  key={c.id}
-                  onPress={() => { setChosenCat(c.id); setPickerOpen(false); }}
-                  style={{
-                    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-                    paddingHorizontal: spacing.lg, paddingVertical: spacing.lg,
-                    borderTopWidth: 1, borderTopColor: colors.hairline,
-                  }}
-                >
-                  <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: selected ? '700' : '500' }}>{c.name}</Text>
-                  {selected && <Check size={20} color={colors.primary} strokeWidth={2.5} />}
-                </Pressable>
-              );
-            })}
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <BottomSheet visible={pickerOpen} onClose={() => setPickerOpen(false)} title={itemId ? 'Move to main category' : 'Main category'}>
+        {categories.map((c) => (
+          <SheetOption key={c.id} label={c.name} selected={c.id === chosenCat} onPress={() => { setChosenCat(c.id); setPickerOpen(false); }} />
+        ))}
+      </BottomSheet>
     </ScrollView>
   );
 }

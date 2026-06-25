@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -11,6 +11,7 @@ import { colors, spacing, font, radius } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useMonth } from '@/data/useMonth';
 import { computeBudgetAllocation } from '@/calc/analytics';
+import { rebalanceSavings } from '@/data/repository';
 import { formatCents } from '@/utils/money';
 import { BUCKET_ORDER } from '@/db/template';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
@@ -37,13 +38,36 @@ export default function BudgetScreen() {
   const { activeMonth } = useActiveMonth();
   const { snapshot, rollups, isLocked } = useMonth(activeMonth);
 
+  // Keep the plan zero-based: Savings absorbs the difference so total = income.
+  useEffect(() => {
+    if (!isLocked) void rebalanceSavings(activeMonth);
+  }, [activeMonth, isLocked]);
+
   const alloc = snapshot ? computeBudgetAllocation(snapshot) : null;
   const itemsByCat = new Map(rollups.map((r) => [r.id, r.items]));
   const buckets = alloc ? [...alloc.buckets].sort((a, b) => rank(a.bucket) - rank(b.bucket)) : [];
 
+  const totalBudgeted = alloc?.totalBudgetedCents ?? 0;
+  const income = alloc?.incomeCents ?? 0;
+  const unalloc = alloc?.unallocatedCents ?? 0;
+  const statusColor = unalloc === 0 ? colors.positive : unalloc > 0 ? colors.warning : colors.negative;
+  const statusText = unalloc === 0 ? 'Balanced' : unalloc > 0 ? `${formatCents(unalloc)} unallocated` : `${formatCents(-unalloc)} over income`;
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}>
+        {alloc && (
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: spacing.lg }}>
+            <View>
+              <Text style={{ color: colors.textMuted, fontSize: font.size.xs, letterSpacing: font.tracking.caps, fontWeight: '700' }}>TOTAL BUDGETED</Text>
+              <Text style={{ color: colors.text, fontSize: font.size.xl, fontWeight: '800', letterSpacing: font.tracking.tight }}>
+                {formatCents(totalBudgeted)} <Text style={{ color: colors.textFaint, fontSize: font.size.sm, fontWeight: '500' }}>/ {formatCents(income)}</Text>
+              </Text>
+            </View>
+            <Text style={{ color: statusColor, fontSize: font.size.sm, fontWeight: '600' }}>{statusText}</Text>
+          </View>
+        )}
+
         <SectionHeader
           title="Main categories"
           action={!isLocked ? <IconButton icon={FolderPlus} label="Add main category" onPress={() => nav.navigate('CategoryForm')} /> : undefined}

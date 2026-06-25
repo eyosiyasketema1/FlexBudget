@@ -26,14 +26,14 @@ export const colors = {
   ink: '#0B0C0E',
   onInk: '#FFFFFF',
 
-  // Vivid green accent — highlights, positive, active data
-  primary: '#06C167',
-  primarySoft: '#D9F7E7', // mint tint (partial heatmap-style fills)
-  primaryFaint: '#EAFBF2',
+  // Mint accent (matches the "SALARY ACCOUNT" label on the card)
+  primary: '#00C8B3',
+  primarySoft: '#D2F4F0', // light mint tint
+  primaryFaint: '#E8FBF8',
 
   // Semantic
-  positive: '#06C167',
-  positiveSoft: '#D9F7E7',
+  positive: '#00C8B3',
+  positiveSoft: '#D2F4F0',
   negative: '#FF4D4F',
   negativeSoft: '#FFE5E5',
   warning: '#F5A623',

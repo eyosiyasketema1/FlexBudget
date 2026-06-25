@@ -30,9 +30,36 @@ export function encryptPayload(payload: BackupPayload, passphrase: string): stri
   return AES.encrypt(JSON.stringify(payload), passphrase).toString();
 }
 
+/** A passphrase-free backup is just the JSON of the payload. */
+export function plainPayload(payload: BackupPayload): string {
+  return JSON.stringify(payload);
+}
+
+function validatePayload(parsed: any): BackupPayload {
+  if (parsed?.magic !== MAGIC) throw new Error('Not a FlexBudget backup file.');
+  if (typeof parsed.version !== 'number' || !parsed.data) throw new Error('Backup file is malformed.');
+  return parsed as BackupPayload;
+}
+
+/** True if the file content looks like an unencrypted (plain JSON) backup. */
+export function isPlainBackup(content: string): boolean {
+  return content.trim().startsWith('{');
+}
+
+/** Parse a plain (unencrypted) backup file. */
+export function parsePlainBackup(content: string): BackupPayload {
+  let parsed: any;
+  try {
+    parsed = JSON.parse(content.trim());
+  } catch {
+    throw new Error('Could not read this backup file.');
+  }
+  return validatePayload(parsed);
+}
+
 /** Decrypt + validate. Throws on wrong passphrase, corruption, or wrong file. */
 export function decryptPayload(cipher: string, passphrase: string): BackupPayload {
-  let parsed: BackupPayload;
+  let parsed: any;
   try {
     const plain = AES.decrypt(cipher, passphrase).toString(Utf8);
     if (!plain) throw new Error('empty');
@@ -40,9 +67,5 @@ export function decryptPayload(cipher: string, passphrase: string): BackupPayloa
   } catch {
     throw new Error('Could not decrypt — wrong passphrase or corrupted file.');
   }
-  if (parsed?.magic !== MAGIC) throw new Error('Not a FlexBudget backup file.');
-  if (typeof parsed.version !== 'number' || !parsed.data) {
-    throw new Error('Backup file is malformed.');
-  }
-  return parsed;
+  return validatePayload(parsed);
 }

@@ -5,7 +5,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import MonthDropdown from '@/components/MonthDropdown';
 import Card from '@/components/Card';
-import IncomeCarousel from '@/components/IncomeCarousel';
+import { AccountCard } from '@/components/AccountCard';
+import SavingsPromptBanner from '@/components/SavingsPromptBanner';
 import { colors, spacing, font, radius, layout } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useMonth } from '@/data/useMonth';
@@ -50,25 +51,30 @@ export default function TimelineScreen() {
   const [hidden, setHidden] = useState(false);
 
   const income = (snapshot?.income ?? []).filter((i) => !i.isArchived);
+  const salary = income[0]; // single salary account
   const buckets: CategoryRollup[] = [...rollups].sort((a, b) => bucketRank(a.bucket) - bucketRank(b.bucket));
 
   const spent = totals?.totalActualCents ?? 0;
   const budget = totals?.totalBudgetedCents ?? 0;
+  const incomeTotal = totals?.totalIncomeCents ?? 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <MonthDropdown />
       <ScrollView contentContainerStyle={{ paddingBottom: layout.tabBarSpace }}>
-        {/* Account card carousel (Figma) */}
-        <View style={{ marginBottom: spacing.xl }}>
-          <IncomeCarousel
-            incomes={income}
-            spentCents={spent}
-            budgetCents={budget}
-            hidden={hidden}
-            onToggleHidden={() => setHidden((h) => !h)}
-            onAddIncome={() => nav.navigate('IncomeForm')}
-          />
+        <SavingsPromptBanner />
+        {/* Salary account card (tap to edit the amount) */}
+        <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.xl }}>
+          <Pressable onPress={() => nav.navigate('IncomeForm', salary ? { incomeId: salary.id } : undefined)} accessibilityRole="button" accessibilityLabel="Edit salary">
+            <AccountCard
+              title={salary?.label ?? 'Salary Account'}
+              amountCents={incomeTotal}
+              spentCents={spent}
+              budgetCents={budget}
+              hidden={hidden}
+              onToggleHidden={() => setHidden((h) => !h)}
+            />
+          </Pressable>
         </View>
 
         {/* Expenses grouped by bucket */}
@@ -93,7 +99,7 @@ export default function TimelineScreen() {
                 ) : (
                   cat.items.map((item, idx) => (
                     <View key={item.id}>
-                      <ItemRow item={item} onPress={() => nav.navigate('ItemForm', { categoryId: cat.id, itemId: item.id })} />
+                      <ItemRow item={item} onPress={() => nav.navigate('RecordExpense', { itemId: item.id })} />
                       {idx < cat.items.length - 1 && <View style={{ height: 1, backgroundColor: colors.hairline, marginBottom: spacing.md }} />}
                     </View>
                   ))

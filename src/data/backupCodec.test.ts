@@ -1,4 +1,4 @@
-import { buildPayload, encryptPayload, decryptPayload, BackupData } from './backupCodec';
+import { buildPayload, encryptPayload, decryptPayload, plainPayload, parsePlainBackup, isPlainBackup, BackupData } from './backupCodec';
 
 const sample: BackupData = {
   months: [{ monthYear: '2026-06', isLocked: false }],
@@ -29,6 +29,17 @@ describe('encrypted backup codec (Phase 5)', () => {
 
   it('refuses too-short passphrases on export', () => {
     expect(() => encryptPayload(buildPayload(sample), 'abc')).toThrow(/6 characters/);
+  });
+
+  it('round-trips a plain (no-passphrase) backup', () => {
+    const text = plainPayload(buildPayload(sample, new Date('2026-06-24T00:00:00Z')));
+    expect(isPlainBackup(text)).toBe(true);
+    const restored = parsePlainBackup(text);
+    expect(restored.data).toEqual(sample);
+  });
+
+  it('detects encrypted vs plain', () => {
+    expect(isPlainBackup(encryptPayload(buildPayload(sample), 'correct horse'))).toBe(false);
   });
 
   it('rejects a non-FlexBudget file', () => {

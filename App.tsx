@@ -6,6 +6,8 @@ import * as Font from 'expo-font';
 
 import { initDatabase } from '@/db';
 import { ensureCurrentMonth } from '@/db/seed';
+import { getCycleStartDayStored } from '@/data/repository';
+import { setCycleStartDayCache } from '@/utils/date';
 import { ActiveMonthProvider } from '@/state/ActiveMonthContext';
 import RootNavigator from '@/navigation/RootNavigator';
 import { colors } from '@/theme/theme';
@@ -33,12 +35,15 @@ function applyGeneralSans() {
 
 export default function App() {
   const [ready, setReady] = useState(false);
+  const [initialMonth, setInitialMonth] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     (async () => {
       await initDatabase();
-      // Only ever CREATES the current month if missing; never edits existing data.
-      await ensureCurrentMonth();
+      // Load the pay-cycle start day, then resolve the current period safely.
+      setCycleStartDayCache(await getCycleStartDayStored());
+      const resolved = await ensureCurrentMonth();
+      setInitialMonth(resolved);
       try {
         await Font.loadAsync(fontAssets);
         applyGeneralSans();
@@ -58,7 +63,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <ActiveMonthProvider>
+      <ActiveMonthProvider initialMonth={initialMonth}>
         <StatusBar style="dark" />
         <RootNavigator />
       </ActiveMonthProvider>
