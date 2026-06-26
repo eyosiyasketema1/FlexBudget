@@ -8,14 +8,14 @@ import { colors, spacing, font, radius } from '@/theme/theme';
 import { onDataChange } from '@/db';
 import { endedUnconfirmedPeriods, setMonthSaved, EndedPeriod } from '@/data/repository';
 import { formatCents, toCents } from '@/utils/money';
-import { formatMonthLabel } from '@/utils/date';
-import { useT } from '@/i18n';
+import { useT, useMonthFmt } from '@/i18n';
 
 // Shows when a budget period has ended but its savings hasn't been confirmed.
 // Asks "did you save the planned amount?" — Yes records the plan, No lets you
 // enter the actual amount. Total Savings only counts confirmed amounts.
 export default function SavingsPromptBanner() {
   const t = useT();
+  const fmt = useMonthFmt();
   const [pending, setPending] = useState<EndedPeriod[]>([]);
   const [amountMode, setAmountMode] = useState(false);
   const [amount, setAmount] = useState('');
@@ -42,7 +42,7 @@ export default function SavingsPromptBanner() {
         <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>{t('savings.title')}</Text>
       </View>
       <Text style={{ color: colors.textMuted, fontSize: font.size.sm, marginBottom: spacing.md }}>
-        {t('savings.ask', { month: formatMonthLabel(p.monthYear), amount: formatCents(p.plannedCents) })}
+        {t('savings.ask', { month: fmt.label(p.monthYear), amount: formatCents(p.plannedCents) })}
       </Text>
 
       {!amountMode ? (

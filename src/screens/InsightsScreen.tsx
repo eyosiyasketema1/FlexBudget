@@ -17,8 +17,7 @@ import { computeTotals } from '@/calc/engine';
 import { getTotalSaved } from '@/data/repository';
 import { onDataChange } from '@/db';
 import { formatCents } from '@/utils/money';
-import { formatMonthLabel } from '@/utils/date';
-import { useT } from '@/i18n';
+import { useT, useMonthFmt } from '@/i18n';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 type Tab = 'analytics' | 'history';
@@ -28,6 +27,7 @@ export default function InsightsScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { activeMonth } = useActiveMonth();
   const t = useT();
+  const fmt = useMonthFmt();
   const { snapshot } = useMonth(activeMonth);
   const { snapshots } = useAllMonthSnapshots();
   const { rolloverTotalCents } = computeSavingsRollover(snapshots);
@@ -101,7 +101,7 @@ export default function InsightsScreen() {
                 <Pressable key={m.monthYear} onPress={() => nav.navigate('MonthDetail', { monthYear: m.monthYear })}>
                   <Card style={{ marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center' }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>{formatMonthLabel(m.monthYear)}</Text>
+                      <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>{fmt.label(m.monthYear)}</Text>
                       <Text style={{ color: colors.textFaint, fontSize: font.size.xs }}>
                         {t('insights.in', { in: formatCents(mt.totalIncomeCents), spent: formatCents(mt.totalActualCents) })}
                       </Text>

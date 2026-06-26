@@ -19,7 +19,7 @@ import { getCycleStartDayStored, setCycleStartDayStored, getRemindersEnabled, se
 import { ensureCurrentMonth } from '@/db/seed';
 import { applyReminderSetting, sendTestReminder } from '@/utils/notifications';
 import { enableSmsCapture, stopSmsCapture, isSmsModuleAvailable, ingestSmsBody, scanRecent } from '@/utils/smsReader';
-import { setCycleStartDayCache, formatPeriodRange, currentPeriodKey } from '@/utils/date';
+import { setCycleStartDayCache } from '@/utils/date';
 
 const ordinal = (n: number) => {
   const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
@@ -182,7 +182,7 @@ export default function SettingsScreen() {
       <Row
         icon={CalendarClock}
         title={t('settings.cycle')}
-        subtitle={cycleDay === 1 ? t('settings.cycle.calendar') : t('settings.cycle.startsOn', { day: ordinal(cycleDay), range: formatPeriodRange(currentPeriodKey(), cycleDay) })}
+        subtitle={cycleDay === 1 ? t('settings.cycle.calendar') : t('settings.cycle.fromDay', { day: ordinal(cycleDay) })}
         onPress={() => setCycleOpen(true)}
         right={<ChevronRight size={20} color={colors.textFaint} />}
       />
@@ -254,6 +254,9 @@ export default function SettingsScreen() {
       </BottomSheet>
 
       <BottomSheet visible={cycleOpen} onClose={() => setCycleOpen(false)} title={t('settings.cycleSheet')}>
+        <Text style={{ color: colors.textMuted, fontSize: font.size.sm, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}>
+          {t('settings.cycle.sub')}
+        </Text>
         <SheetOption label={t('settings.cycle.first')} selected={cycleDay === 1} onPress={() => chooseCycleDay(1)} />
         {Array.from({ length: 27 }, (_, i) => i + 2).map((d) => (
           <SheetOption key={d} label={ordinal(d)} selected={cycleDay === d} onPress={() => chooseCycleDay(d)} />

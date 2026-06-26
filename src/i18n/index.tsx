@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { getSetting, setSetting, getCalendarSystem, setCalendarSystem } from '@/data/repository';
-import { setLangCache, setCalendarCache } from '@/utils/date';
+import { setLangCache, setCalendarCache, formatMonthLabel, formatMonthShort } from '@/utils/date';
 import { STRINGS } from './strings';
 
 export type CalendarSystem = 'gregorian' | 'ethiopian';
@@ -79,6 +79,19 @@ export function useLang(): LangCtx {
 /** Convenience: just the t() function. */
 export function useT() {
   return useContext(Ctx).t;
+}
+
+/**
+ * Reactive month-label formatters bound to the current language + calendar.
+ * Using these (instead of the bare date.ts functions) guarantees labels update
+ * the instant the user switches language or calendar.
+ */
+export function useMonthFmt() {
+  const { lang, calendar } = useContext(Ctx);
+  return {
+    label: (monthYear: string) => formatMonthLabel(monthYear, lang, calendar),
+    short: (monthYear: string) => formatMonthShort(monthYear, lang, calendar),
+  };
 }
 
 /**

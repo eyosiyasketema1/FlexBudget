@@ -17,8 +17,7 @@ import {
   computeBudgetAllocation,
 } from '@/calc/analytics';
 import { formatCents } from '@/utils/money';
-import { formatMonthShort } from '@/utils/date';
-import { useT, useLocalizeName } from '@/i18n';
+import { useT, useLocalizeName, useMonthFmt } from '@/i18n';
 import type { MonthSnapshot, Bucket } from '@/calc/types';
 
 const BUCKET_COLOR: Record<Bucket, string> = { needs: '#06C167', wants: '#7C5CFF', savings: '#F5A623', church: '#19B5C9' };
@@ -37,6 +36,7 @@ function Bar({ pct, color, over }: { pct: number; color: string; over?: boolean 
 export default function AnalyticsDashboard({ snapshot, snapshots }: { snapshot: MonthSnapshot; snapshots: MonthSnapshot[] }) {
   const tr = useT();
   const localize = useLocalizeName();
+  const fmt = useMonthFmt();
   const safe = computeSafeToSpend(snapshot);
   const comp = computeComposition(snapshot);
   const top = topSpendItems(snapshot, 5);
@@ -44,7 +44,7 @@ export default function AnalyticsDashboard({ snapshot, snapshots }: { snapshot: 
   const alloc = computeBudgetAllocation(snapshot);
   const trends = buildTrends(snapshots);
   const donutSlices = comp.slices.map((s) => ({ value: s.actualCents, color: BUCKET_COLOR[s.bucket] }));
-  const trendLabels = trends.map((t) => formatMonthShort(t.monthYear));
+  const trendLabels = trends.map((tt) => fmt.short(tt.monthYear));
 
   return (
     <View>

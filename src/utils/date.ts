@@ -48,18 +48,24 @@ export function daysInMonth(monthYear: string): number {
   return new Date(y, m, 0).getDate();
 }
 
-/** "2026-06" -> "Jun 2026" (Gregorian) or "ሰኔ 2018" (Ethiopian), localized. */
-export function formatMonthLabel(monthYear: string): string {
+/**
+ * "2026-06" -> "Jun 2026" (Gregorian) or "ሰኔ 2018" (Ethiopian), localized.
+ * lang/calendar default to the cached settings; pass explicit values (e.g. from
+ * the useMonthFmt hook) so React components re-render when the setting changes.
+ */
+export function formatMonthLabel(monthYear: string, lang: string = _lang, calendar: string = _calendar): string {
   const [y, m] = monthYear.split('-').map(Number);
-  if (_calendar === 'ethiopian') return ethiopianMonthLabel(y, m, _lang);
-  return `${(GREG_MONTHS[_lang] ?? GREG_MONTHS.en)[m - 1]} ${y}`;
+  const l = (['en', 'am', 'om', 'sw'].includes(lang) ? lang : 'en') as LangCode;
+  if (calendar === 'ethiopian') return ethiopianMonthLabel(y, m, l);
+  return `${GREG_MONTHS[l][m - 1]} ${y}`;
 }
 
 /** Short month form for chart axes / banners, localized + calendar-aware. */
-export function formatMonthShort(monthYear: string): string {
+export function formatMonthShort(monthYear: string, lang: string = _lang, calendar: string = _calendar): string {
   const [y, m] = monthYear.split('-').map(Number);
-  if (_calendar === 'ethiopian') return ethiopianMonthLabel(y, m, _lang).split(' ')[0].slice(0, 4);
-  return (GREG_MONTHS[_lang] ?? GREG_MONTHS.en)[m - 1];
+  const l = (['en', 'am', 'om', 'sw'].includes(lang) ? lang : 'en') as LangCode;
+  if (calendar === 'ethiopian') return ethiopianMonthLabel(y, m, l).split(' ')[0].slice(0, 4);
+  return GREG_MONTHS[l][m - 1];
 }
 
 // ── Pay cycle ──────────────────────────────────────────────────────────────

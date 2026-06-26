@@ -10,12 +10,12 @@ import { useMonth } from '@/data/useMonth';
 import { useAllMonthSnapshots } from '@/data/useHistory';
 import { rolloverByMonth } from '@/calc/analytics';
 import { formatCents } from '@/utils/money';
-import { formatMonthLabel } from '@/utils/date';
-import { useT } from '@/i18n';
+import { useT, useMonthFmt } from '@/i18n';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 export default function MonthDetailScreen() {
   const t = useT();
+  const fmt = useMonthFmt();
   const route = useRoute<RouteProp<RootStackParamList, 'MonthDetail'>>();
   const monthYear = route.params.monthYear;
   const { snapshot } = useMonth(monthYear);
@@ -25,7 +25,7 @@ export default function MonthDetailScreen() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}>
       <Text style={{ color: colors.text, fontSize: font.size.xl, fontWeight: '800', letterSpacing: font.tracking.tight, marginBottom: spacing.lg }}>
-        {formatMonthLabel(monthYear)}
+        {fmt.label(monthYear)}
       </Text>
 
       <Card style={{ marginBottom: spacing.lg, flexDirection: 'row', alignItems: 'center' }}>

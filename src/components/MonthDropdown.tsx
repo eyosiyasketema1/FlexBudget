@@ -7,8 +7,8 @@ import { listMonths } from '@/data/snapshot';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import BottomSheet, { SheetOption } from '@/components/BottomSheet';
 import { colors, spacing, font } from '@/theme/theme';
-import { formatMonthLabel, currentPeriodKey } from '@/utils/date';
-import { useT } from '@/i18n';
+import { currentPeriodKey } from '@/utils/date';
+import { useT, useMonthFmt } from '@/i18n';
 
 // Compact month selector: the active month + chevron, opening a bottom sheet
 // listing the current month and all past months. Months are created
@@ -17,6 +17,7 @@ export default function MonthDropdown({ safeTop = true }: { safeTop?: boolean })
   const insets = useSafeAreaInsets();
   const { activeMonth, setActiveMonth } = useActiveMonth();
   const t = useT();
+  const fmt = useMonthFmt();
   const [open, setOpen] = useState(false);
   const [months, setMonths] = useState<{ monthYear: string; isLocked: boolean }[]>([]);
 
@@ -38,11 +39,11 @@ export default function MonthDropdown({ safeTop = true }: { safeTop?: boolean })
         <Pressable
           onPress={() => setOpen(true)}
           accessibilityRole="button"
-          accessibilityLabel={`Month: ${formatMonthLabel(activeMonth)}. Tap to change.`}
+          accessibilityLabel={`Month: ${fmt.label(activeMonth)}. Tap to change.`}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' }}
         >
           <Text style={{ color: colors.text, fontSize: font.size.xl, fontWeight: '800', letterSpacing: font.tracking.tight }}>
-            {formatMonthLabel(activeMonth)}
+            {fmt.label(activeMonth)}
           </Text>
           <ChevronDown size={22} color={colors.textMuted} strokeWidth={2.5} />
         </Pressable>
@@ -52,7 +53,7 @@ export default function MonthDropdown({ safeTop = true }: { safeTop?: boolean })
         {months.map((m) => (
           <SheetOption
             key={m.monthYear}
-            label={formatMonthLabel(m.monthYear)}
+            label={fmt.label(m.monthYear)}
             selected={m.monthYear === activeMonth}
             onPress={() => { setActiveMonth(m.monthYear); setOpen(false); }}
             trailing={

@@ -6,12 +6,12 @@ import { colors, spacing, font } from '@/theme/theme';
 import { useAllMonthSnapshots } from '@/data/useHistory';
 import { computeSavingsRollover } from '@/calc/analytics';
 import { formatCents, formatSignedCents } from '@/utils/money';
-import { formatMonthLabel } from '@/utils/date';
-import { useT } from '@/i18n';
+import { useT, useMonthFmt } from '@/i18n';
 import type { RolloverEntry } from '@/calc/analytics';
 
 export default function RolloverScreen() {
   const t = useT();
+  const fmt = useMonthFmt();
   const { snapshots } = useAllMonthSnapshots();
   const { rolloverTotalCents, entries } = computeSavingsRollover(snapshots);
 
@@ -41,7 +41,7 @@ export default function RolloverScreen() {
         groups.map((g) => (
           <View key={g.monthYear} style={{ marginBottom: spacing.lg }}>
             <Text style={{ color: colors.textMuted, fontSize: font.size.xs, fontWeight: '700', letterSpacing: font.tracking.caps, textTransform: 'uppercase', marginBottom: spacing.sm }}>
-              {formatMonthLabel(g.monthYear)}
+              {fmt.label(g.monthYear)}
             </Text>
             <Card>
               {g.rows.map((r, i) => (
