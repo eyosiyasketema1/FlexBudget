@@ -361,10 +361,26 @@ export async function setSmsCaptureEnabled(on: boolean): Promise<void> {
   await setSetting(SMS_KEY, on ? '1' : '0');
 }
 
+const SMS_LAST_SCAN_KEY = 'sms_last_scan';
+export async function getSmsLastScan(): Promise<number> {
+  const v = await getSetting(SMS_LAST_SCAN_KEY);
+  const n = v ? parseInt(v, 10) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+export async function setSmsLastScan(ms: number): Promise<void> {
+  await setSetting(SMS_LAST_SCAN_KEY, String(Math.floor(ms)));
+}
+
 // ── Pending SMS-captured transactions (await user confirmation) ───────────────
 export interface PendingSms { id: string; body: string; amountCents: number; kind: string; createdAt: number; }
 
 export async function addPendingSms(body: string, amountCents: number, kind: string): Promise<void> {
+  // Skip duplicates (same message captured twice by a re-scan).
+  const dup = await first<{ id: string }>(
+    'SELECT id FROM pending_sms WHERE body = ? AND amount_cents = ?',
+    [body, amountCents],
+  );
+  if (dup) return;
   await run(
     'INSERT INTO pending_sms (id, body, amount_cents, kind, created_at) VALUES (?, ?, ?, ?, ?)',
     [makeId('SMS'), body, amountCents, kind, Date.now()],

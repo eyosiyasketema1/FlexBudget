@@ -17,7 +17,7 @@ import { exportBackup, importBackup } from '@/data/backup';
 import { getCycleStartDayStored, setCycleStartDayStored, getRemindersEnabled, setRemindersEnabled, getSmsCaptureEnabled, setSmsCaptureEnabled } from '@/data/repository';
 import { ensureCurrentMonth } from '@/db/seed';
 import { applyReminderSetting, sendTestReminder } from '@/utils/notifications';
-import { startSmsListener, isSmsModuleAvailable, ingestSmsBody } from '@/utils/smsReader';
+import { enableSmsCapture, stopSmsCapture, isSmsModuleAvailable, ingestSmsBody, scanInbox } from '@/utils/smsReader';
 import { setCycleStartDayCache, formatPeriodRange, currentPeriodKey } from '@/utils/date';
 
 const ordinal = (n: number) => {
@@ -47,15 +47,16 @@ export default function SettingsScreen() {
     }
     setSmsOn(on);
     if (on) {
-      const started = await startSmsListener();
+      const started = await enableSmsCapture();
       await setSmsCaptureEnabled(started);
       setSmsOn(started);
       if (started) {
-        Alert.alert('SMS reading on', 'Keep FlexBudget open. New bank/telecom payment messages will appear on Home for you to confirm. Try "Simulate a transaction SMS" to see it now.');
+        Alert.alert('SMS reading on', 'New bank/telecom payment messages will appear on Home for you to confirm — including ones that arrived while the app was closed. Try "Simulate a transaction SMS" to see the flow now.');
       } else {
         Alert.alert('Permission needed', 'Allow SMS access for FlexBudget so it can spot your bank/telecom transactions. If you denied it, enable SMS for FlexBudget in your phone\'s app settings, then toggle this again.');
       }
     } else {
+      stopSmsCapture();
       await setSmsCaptureEnabled(false);
     }
   };
@@ -64,6 +65,15 @@ export default function SettingsScreen() {
     const sample = 'Dear customer, you have transferred ETB 250.00 to ABEBE STORE. Your balance is ETB 1,300.45. Ref 8842';
     const captured = await ingestSmsBody(sample);
     Alert.alert(captured ? 'Captured a test transaction' : 'Nothing captured', captured ? 'Open Home — it\'s waiting under "Transactions from SMS" for you to confirm.' : 'The sample did not parse.');
+  };
+
+  const scanNow = async () => {
+    if (!isSmsModuleAvailable()) {
+      Alert.alert('Needs a full build', 'Reading real messages needs the dev build (eas build). The simulate button works without it.');
+      return;
+    }
+    const n = await scanInbox();
+    Alert.alert('Scan complete', n > 0 ? `Found ${n} new transaction${n === 1 ? '' : 's'}. Check Home.` : 'No new transaction messages since the last scan.');
   };
 
   const toggleReminders = async (on: boolean) => {
@@ -184,9 +194,14 @@ export default function SettingsScreen() {
         onPress={() => toggleSms(!smsOn)}
         right={<Switch value={smsOn} onValueChange={toggleSms} trackColor={{ true: colors.primary, false: colors.surfaceAlt }} />}
       />
-      <Pressable onPress={simulateSms} style={{ paddingBottom: spacing.md }}>
-        <Text style={{ color: colors.primary, fontSize: font.size.sm, fontWeight: '600' }}>Simulate a transaction SMS (test)</Text>
-      </Pressable>
+      <View style={{ flexDirection: 'row', gap: spacing.lg, paddingBottom: spacing.md }}>
+        <Pressable onPress={scanNow}>
+          <Text style={{ color: colors.primary, fontSize: font.size.sm, fontWeight: '600' }}>Scan messages now</Text>
+        </Pressable>
+        <Pressable onPress={simulateSms}>
+          <Text style={{ color: colors.primary, fontSize: font.size.sm, fontWeight: '600' }}>Simulate (test)</Text>
+        </Pressable>
+      </View>
       <View style={{ height: 1, backgroundColor: colors.hairline }} />
       <Row
         icon={ShieldCheck}

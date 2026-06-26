@@ -8,7 +8,7 @@ import { initDatabase } from '@/db';
 import { ensureCurrentMonth } from '@/db/seed';
 import { getCycleStartDayStored, getRemindersEnabled, getSmsCaptureEnabled } from '@/data/repository';
 import { scheduleReminders } from '@/utils/notifications';
-import { startSmsListener } from '@/utils/smsReader';
+import { startSmsCapture } from '@/utils/smsReader';
 import { setCycleStartDayCache } from '@/utils/date';
 import { ActiveMonthProvider } from '@/state/ActiveMonthContext';
 import RootNavigator from '@/navigation/RootNavigator';
@@ -49,7 +49,7 @@ export default function App() {
       // Re-arm reminders if the user has them on (schedules persist, but this
       // keeps them alive across reinstalls / cleared schedules).
       if (await getRemindersEnabled()) scheduleReminders();
-      if (await getSmsCaptureEnabled()) startSmsListener();
+      if (await getSmsCaptureEnabled()) startSmsCapture();
       try {
         await Font.loadAsync(fontAssets);
         applyGeneralSans();
