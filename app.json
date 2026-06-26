@@ -28,7 +28,8 @@
         {
           "color": "#00C8B3"
         }
-      ]
+      ],
+      "./plugins/withGetSmsAndroidFix"
     ],
     "extra": {
       "eas": {
