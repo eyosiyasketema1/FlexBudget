@@ -110,7 +110,7 @@ let appStateSub: { remove: () => void } | null = null;
 export function startSmsCapture(): void {
   if (!isSmsModuleAvailable()) return;
   void scanInbox();
-  if (!pollTimer) pollTimer = setInterval(() => { void scanInbox(); }, 15000);
+  if (!pollTimer) pollTimer = setInterval(() => { void scanInbox(); }, 8000);
   if (!appStateSub) {
     appStateSub = AppState.addEventListener('change', (s: AppStateStatus) => {
       if (s === 'active') void scanInbox();
@@ -123,12 +123,14 @@ export function stopSmsCapture(): void {
   if (appStateSub) { appStateSub.remove(); appStateSub = null; }
 }
 
-/** Turn capture on: request permission, set a baseline, start scanning. */
+/** Turn capture on: request permission, do an initial catch-up, start scanning. */
 export async function enableSmsCapture(): Promise<boolean> {
   if (!isSmsModuleAvailable()) return false;
   const granted = await requestSmsPermission();
   if (!granted) return false;
-  if ((await getSmsLastScan()) === 0) await setSmsLastScan(Date.now());
-  startSmsCapture();
+  const firstTime = (await getSmsLastScan()) === 0;
+  if (firstTime) await setSmsLastScan(Date.now()); // baseline so future scans are incremental
+  startSmsCapture(); // poll + rescan-on-resume
+  if (firstTime) await scanRecent(2); // one-time grab of the last 2 days so it feels automatic immediately
   return true;
 }
