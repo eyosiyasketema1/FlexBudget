@@ -17,6 +17,7 @@ import IncomeFormScreen from '@/screens/forms/IncomeFormScreen';
 import CategoryFormScreen from '@/screens/forms/CategoryFormScreen';
 import ItemFormScreen from '@/screens/forms/ItemFormScreen';
 import RecordExpenseScreen from '@/screens/forms/RecordExpenseScreen';
+import ReconcileScreen from '@/screens/forms/ReconcileScreen';
 
 export type RootStackParamList = {
   Tabs: undefined;
@@ -24,6 +25,7 @@ export type RootStackParamList = {
   Rollover: undefined;
   MonthDetail: { monthYear: string };
   RecordExpense: { itemId?: string } | undefined;
+  Reconcile: undefined;
   IncomeForm: { incomeId?: string } | undefined;
   CategoryForm: { categoryId?: string } | undefined;
   ItemForm: { categoryId?: string; itemId?: string } | undefined;
@@ -80,6 +82,7 @@ export default function RootNavigator() {
         <Stack.Screen name="MonthDetail" component={MonthDetailScreen} options={{ title: 'Month' }} />
         <Stack.Group screenOptions={{ presentation: 'modal' }}>
           <Stack.Screen name="RecordExpense" component={RecordExpenseScreen} options={{ title: 'Add Expense' }} />
+          <Stack.Screen name="Reconcile" component={ReconcileScreen} options={{ title: 'Reconcile' }} />
           <Stack.Screen name="IncomeForm" component={IncomeFormScreen} options={{ title: 'Income' }} />
           <Stack.Screen name="CategoryForm" component={CategoryFormScreen} options={{ title: 'Category' }} />
           <Stack.Screen

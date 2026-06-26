@@ -4,12 +4,11 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 
 import { all, getDb, notifyChange } from '@/db';
-import { buildPayload, encryptPayload, plainPayload, decryptPayload, isPlainBackup, parsePlainBackup, BackupData } from './backupCodec';
+import { buildPayload, plainPayload, isPlainBackup, parsePlainBackup, BackupData } from './backupCodec';
 
-// Encrypted local backup. Serializes the whole on-device SQLite database to
-// JSON, AES-encrypts it with a passphrase, and writes a file the user can move
-// to another device via the share sheet. No server is involved. The pure
-// encrypt/decrypt/validate logic lives in backupCodec.ts (unit-tested).
+// Simple local backup: serializes the whole on-device SQLite database to a
+// plain JSON file the user can save anywhere (share sheet) and restore later.
+// No encryption, no passphrase, no server.
 
 async function serializeAll(): Promise<BackupData> {
   const [months, income, categories, items] = await Promise.all([
@@ -21,40 +20,28 @@ async function serializeAll(): Promise<BackupData> {
   return { months, income, categories, items };
 }
 
-/**
- * Export a backup file and open the share sheet. The passphrase is OPTIONAL:
- * blank → a quick unencrypted backup; set → AES-encrypted.
- */
-export async function exportEncryptedBackup(passphrase: string): Promise<string> {
-  const pass = passphrase.trim();
-  if (pass.length > 0 && pass.length < 6) {
-    throw new Error('Use a passphrase of at least 6 characters, or leave it blank.');
-  }
-  const payload = buildPayload(await serializeAll());
-  const content = pass.length > 0 ? encryptPayload(payload, pass) : plainPayload(payload);
+/** Export a backup file and open the share sheet. */
+export async function exportBackup(): Promise<string> {
+  const content = plainPayload(buildPayload(await serializeAll()));
   const stamp = new Date().toISOString().slice(0, 10);
-  const uri = `${FileSystem.documentDirectory}flexbudget-backup-${stamp}.fbk`;
+  const uri = `${FileSystem.documentDirectory}flexbudget-backup-${stamp}.json`;
   await FileSystem.writeAsStringAsync(uri, content, { encoding: FileSystem.EncodingType.UTF8 });
   if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(uri, { mimeType: 'application/octet-stream', dialogTitle: 'FlexBudget backup' });
+    await Sharing.shareAsync(uri, { mimeType: 'application/json', dialogTitle: 'FlexBudget backup' });
   }
   return uri;
 }
 
 /**
- * Restore a backup file. Auto-detects whether it's plain or encrypted — only
- * encrypted files need the passphrase. REPLACES all current local data (the
- * caller should confirm with the user first).
+ * Restore a backup file, REPLACING all current local data (the caller should
+ * confirm with the user first).
  */
-export async function importEncryptedBackup(fileUri: string, passphrase: string): Promise<void> {
+export async function importBackup(fileUri: string): Promise<void> {
   const content = await FileSystem.readAsStringAsync(fileUri, { encoding: FileSystem.EncodingType.UTF8 });
-  let payload;
-  if (isPlainBackup(content)) {
-    payload = parsePlainBackup(content);
-  } else {
-    if (!passphrase.trim()) throw new Error('This backup is encrypted — enter its passphrase to restore.');
-    payload = decryptPayload(content, passphrase.trim());
+  if (!isPlainBackup(content)) {
+    throw new Error('This file is not a FlexBudget backup.');
   }
+  const payload = parsePlainBackup(content);
   const d = payload.data as BackupData;
 
   const db = await getDb();
@@ -82,8 +69,8 @@ export async function importEncryptedBackup(fileUri: string, passphrase: string)
     }
     for (const it of d.items as any[]) {
       await db.runAsync(
-        'INSERT INTO expense_items (id, category_id, month_year, name, budget_cap_cents, actual_spent_cents, rollover_enabled, rollover_cents, is_archived, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [it.id, it.category_id, it.month_year, it.name, it.budget_cap_cents, it.actual_spent_cents, it.rollover_enabled ?? 0, it.rollover_cents ?? 0, it.is_archived ?? 0, it.sort_order ?? 0, it.created_at ?? Date.now()],
+        'INSERT INTO expense_items (id, category_id, month_year, name, budget_cap_cents, actual_spent_cents, rollover_enabled, rollover_cents, is_recurring, is_archived, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [it.id, it.category_id, it.month_year, it.name, it.budget_cap_cents, it.actual_spent_cents, it.rollover_enabled ?? 0, it.rollover_cents ?? 0, it.is_recurring ?? 0, it.is_archived ?? 0, it.sort_order ?? 0, it.created_at ?? Date.now()],
       );
     }
   });

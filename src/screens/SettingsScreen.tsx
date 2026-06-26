@@ -1,22 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { LucideIcon } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import { Tags, ShieldCheck, Download, Upload, ChevronRight, ChevronDown, CalendarClock } from 'lucide-react-native';
+import { Tags, ShieldCheck, Download, Upload, ChevronRight, ChevronDown, CalendarClock, BellRing, MessageSquareText } from 'lucide-react-native';
 
-import Field from '@/components/Field';
 import Button from '@/components/Button';
 import ScreenTitle from '@/components/ScreenTitle';
 import BottomSheet, { SheetOption } from '@/components/BottomSheet';
 import { colors, spacing, font } from '@/theme/theme';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
-import { exportEncryptedBackup, importEncryptedBackup } from '@/data/backup';
-import { getCycleStartDayStored, setCycleStartDayStored } from '@/data/repository';
+import { exportBackup, importBackup } from '@/data/backup';
+import { getCycleStartDayStored, setCycleStartDayStored, getRemindersEnabled, setRemindersEnabled, getSmsCaptureEnabled, setSmsCaptureEnabled } from '@/data/repository';
 import { ensureCurrentMonth } from '@/db/seed';
+import { applyReminderSetting, sendTestReminder } from '@/utils/notifications';
+import { startSmsListener, isSmsModuleAvailable, ingestSmsBody } from '@/utils/smsReader';
 import { setCycleStartDayCache, formatPeriodRange, currentPeriodKey } from '@/utils/date';
 
 const ordinal = (n: number) => {
@@ -28,13 +29,48 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { setActiveMonth } = useActiveMonth();
-  const [passphrase, setPassphrase] = useState('');
   const [busy, setBusy] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
   const [cycleDay, setCycleDay] = useState(1);
   const [cycleOpen, setCycleOpen] = useState(false);
+  const [reminders, setReminders] = useState(false);
+  const [smsOn, setSmsOn] = useState(false);
 
   useEffect(() => { getCycleStartDayStored().then(setCycleDay); }, []);
+  useEffect(() => { getRemindersEnabled().then(setReminders); }, []);
+  useEffect(() => { getSmsCaptureEnabled().then(setSmsOn); }, []);
+
+  const toggleSms = async (on: boolean) => {
+    if (on && !isSmsModuleAvailable()) {
+      Alert.alert('Needs a full build', 'Reading SMS isn\'t available in Expo Go. Install the dev build (eas build) and try again.');
+      return;
+    }
+    setSmsOn(on);
+    if (on) {
+      const started = await startSmsListener();
+      await setSmsCaptureEnabled(started);
+      setSmsOn(started);
+      if (!started) Alert.alert('Permission needed', 'Allow SMS access for FlexBudget so it can spot your telebirr/CBE transactions.');
+    } else {
+      await setSmsCaptureEnabled(false);
+    }
+  };
+
+  const simulateSms = async () => {
+    const sample = 'Dear customer, you have transferred ETB 250.00 to ABEBE STORE. Your balance is ETB 1,300.45. Ref 8842';
+    const captured = await ingestSmsBody(sample);
+    Alert.alert(captured ? 'Captured a test transaction' : 'Nothing captured', captured ? 'Open Home — it\'s waiting under "Transactions from SMS" for you to confirm.' : 'The sample did not parse.');
+  };
+
+  const toggleReminders = async (on: boolean) => {
+    setReminders(on); // optimistic
+    const applied = await applyReminderSetting(on);
+    await setRemindersEnabled(applied);
+    setReminders(applied);
+    if (on && !applied) {
+      Alert.alert('Reminders unavailable', 'Allow notifications for FlexBudget in your phone settings. (In Expo Go, reminders only fire in a full app build.)');
+    }
+  };
 
   // Safe: ensureCurrentMonth is guarded so it never creates a backwards/dummy
   // period; it returns the real period to land on.
@@ -51,10 +87,9 @@ export default function SettingsScreen() {
     if (busy) return;
     try {
       setBusy(true);
-      await exportEncryptedBackup(passphrase);
-      setPassphrase('');
+      await exportBackup();
     } catch (e) {
-      Alert.alert('Export failed', (e as Error).message);
+      Alert.alert('Backup failed', (e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -65,19 +100,18 @@ export default function SettingsScreen() {
     const picked = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
     if (picked.canceled || !picked.assets?.[0]) return;
     const uri = picked.assets[0].uri;
-    Alert.alert('Replace all data?', 'Importing a backup overwrites everything currently on this device.', [
+    Alert.alert('Replace all data?', 'Restoring a backup overwrites everything currently on this device.', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Import & replace',
+        text: 'Restore & replace',
         style: 'destructive',
         onPress: async () => {
           try {
             setBusy(true);
-            await importEncryptedBackup(uri, passphrase);
-            setPassphrase('');
+            await importBackup(uri);
             Alert.alert('Restored', 'Your data has been restored from the backup.');
           } catch (e) {
-            Alert.alert('Import failed', (e as Error).message);
+            Alert.alert('Restore failed', (e as Error).message);
           } finally {
             setBusy(false);
           }
@@ -123,9 +157,37 @@ export default function SettingsScreen() {
       />
       <View style={{ height: 1, backgroundColor: colors.hairline }} />
       <Row
+        icon={BellRing}
+        title="Spending reminders"
+        subtitle="A nudge every 6 hours to log what you spent"
+        onPress={() => toggleReminders(!reminders)}
+        right={<Switch value={reminders} onValueChange={toggleReminders} trackColor={{ true: colors.primary, false: colors.surfaceAlt }} />}
+      />
+      <Pressable
+        onPress={async () => {
+          const ok = await sendTestReminder();
+          Alert.alert(ok ? 'Test reminder sent' : 'Could not send', ok ? 'It will appear in ~2 seconds. Background the app to see the banner.' : 'Allow notifications for FlexBudget. (In Expo Go these only fire in a full app build.)');
+        }}
+        style={{ paddingBottom: spacing.md }}
+      >
+        <Text style={{ color: colors.primary, fontSize: font.size.sm, fontWeight: '600' }}>Send a test reminder now</Text>
+      </Pressable>
+      <View style={{ height: 1, backgroundColor: colors.hairline }} />
+      <Row
+        icon={MessageSquareText}
+        title="Read transaction SMS"
+        subtitle="Spot telebirr/CBE payments and ask you to confirm them"
+        onPress={() => toggleSms(!smsOn)}
+        right={<Switch value={smsOn} onValueChange={toggleSms} trackColor={{ true: colors.primary, false: colors.surfaceAlt }} />}
+      />
+      <Pressable onPress={simulateSms} style={{ paddingBottom: spacing.md }}>
+        <Text style={{ color: colors.primary, fontSize: font.size.sm, fontWeight: '600' }}>Simulate a transaction SMS (test)</Text>
+      </Pressable>
+      <View style={{ height: 1, backgroundColor: colors.hairline }} />
+      <Row
         icon={ShieldCheck}
-        title="Encrypted Backup"
-        subtitle="Export or restore your data"
+        title="Backup & Restore"
+        subtitle="Save a copy of your data, or restore it"
         onPress={() => setBackupOpen((o) => !o)}
         right={backupOpen ? <ChevronDown size={20} color={colors.textFaint} /> : <ChevronRight size={20} color={colors.textFaint} />}
       />
@@ -133,9 +195,8 @@ export default function SettingsScreen() {
       {backupOpen && (
         <View style={{ paddingTop: spacing.md }}>
           <Text style={{ color: colors.textMuted, fontSize: font.size.sm, marginBottom: spacing.md }}>
-            Save a backup file of your data to move it between devices — no cloud. Leave the passphrase blank for a quick backup, or set one to encrypt it (you'll need it to restore).
+            Save a backup file of your data to move it between devices or keep it safe — no cloud, no account. Restore it anytime.
           </Text>
-          <Field label="Passphrase (optional)" value={passphrase} onChangeText={setPassphrase} placeholder="Leave blank, or 6+ characters to encrypt" />
           <Button title={busy ? 'Working…' : 'Back up my data'} icon={Download} onPress={onExport} disabled={busy} />
           <Button title="Restore from file" icon={Upload} onPress={onImport} variant="secondary" disabled={busy} style={{ marginTop: spacing.sm }} />
         </View>

@@ -23,6 +23,7 @@ export default function ItemFormScreen() {
   const [name, setName] = useState('');
   const [cap, setCap] = useState('');
   const [rollover, setRollover] = useState(false);
+  const [recurring, setRecurring] = useState(false);
   const [carry, setCarry] = useState(0);
   const [actualPreserved, setActualPreserved] = useState(0); // kept, not edited here
 
@@ -44,6 +45,7 @@ export default function ItemFormScreen() {
       setName(row.name);
       setCap(formatCents(row.budgetCapCents));
       setRollover(row.rolloverEnabled);
+      setRecurring(row.isRecurring);
       setCarry(row.rolloverCents);
       setActualPreserved(row.actualSpentCents);
       setChosenCat(row.categoryId);
@@ -68,6 +70,7 @@ export default function ItemFormScreen() {
       budgetCapCents: toCents(cap),
       actualSpentCents: actualPreserved, // preserved; spend is recorded on Home
       rolloverEnabled: rollover,
+      isRecurring: recurring,
     };
     try {
       if (itemId) {
@@ -128,6 +131,22 @@ export default function ItemFormScreen() {
           </Text>
         </View>
         <Switch value={rollover} onValueChange={setRollover} trackColor={{ true: colors.primary, false: colors.surfaceAlt }} />
+      </View>
+
+      <View
+        style={{
+          flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+          backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+          borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.lg,
+        }}
+      >
+        <View style={{ flex: 1, paddingRight: spacing.md }}>
+          <Text style={{ color: colors.text, fontWeight: '600' }}>Recurring fixed bill</Text>
+          <Text style={{ color: colors.textMuted, fontSize: font.size.xs }}>
+            A predictable bill (rent, internet, tithe). Each period the Home screen reminds you to confirm you paid it — nothing posts until you tap confirm.
+          </Text>
+        </View>
+        <Switch value={recurring} onValueChange={setRecurring} trackColor={{ true: colors.primary, false: colors.surfaceAlt }} />
       </View>
 
       <Button title={itemId ? 'Save' : 'Add sub-category'} onPress={onSave} />

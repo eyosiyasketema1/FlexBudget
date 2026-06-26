@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS expense_items (
   actual_spent_cents INTEGER NOT NULL DEFAULT 0,
   rollover_enabled   INTEGER NOT NULL DEFAULT 0,
   rollover_cents     INTEGER NOT NULL DEFAULT 0,
+  is_recurring       INTEGER NOT NULL DEFAULT 0,
   is_archived        INTEGER NOT NULL DEFAULT 0,
   sort_order         INTEGER NOT NULL DEFAULT 0,
   created_at         INTEGER NOT NULL
@@ -76,15 +77,27 @@ CREATE TABLE IF NOT EXISTS expense_entries (
 );
 CREATE INDEX IF NOT EXISTS idx_entry_item ON expense_entries(item_id);
 CREATE INDEX IF NOT EXISTS idx_entry_month ON expense_entries(month_year);
+
+CREATE TABLE IF NOT EXISTS pending_sms (
+  id           TEXT PRIMARY KEY NOT NULL,
+  body         TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL,
+  kind         TEXT NOT NULL,
+  created_at   INTEGER NOT NULL
+);
 `;
 
 export async function initDatabase(): Promise<void> {
   const db = await getDb();
   await db.execAsync(DDL);
-  // Lightweight migration: add months.saved_cents to existing databases.
-  const cols = await db.getAllAsync<{ name: string }>('PRAGMA table_info(months)');
-  if (!cols.some((c) => c.name === 'saved_cents')) {
+  // Lightweight migrations for existing databases.
+  const mCols = await db.getAllAsync<{ name: string }>('PRAGMA table_info(months)');
+  if (!mCols.some((c) => c.name === 'saved_cents')) {
     await db.execAsync('ALTER TABLE months ADD COLUMN saved_cents INTEGER');
+  }
+  const iCols = await db.getAllAsync<{ name: string }>('PRAGMA table_info(expense_items)');
+  if (!iCols.some((c) => c.name === 'is_recurring')) {
+    await db.execAsync('ALTER TABLE expense_items ADD COLUMN is_recurring INTEGER NOT NULL DEFAULT 0');
   }
 }
 

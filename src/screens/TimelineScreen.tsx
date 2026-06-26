@@ -7,6 +7,8 @@ import MonthDropdown from '@/components/MonthDropdown';
 import Card from '@/components/Card';
 import { AccountCard } from '@/components/AccountCard';
 import SavingsPromptBanner from '@/components/SavingsPromptBanner';
+import RecurringPromptBanner from '@/components/RecurringPromptBanner';
+import SmsPromptBanner from '@/components/SmsPromptBanner';
 import { colors, spacing, font, radius, layout } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useMonth } from '@/data/useMonth';
@@ -63,6 +65,8 @@ export default function TimelineScreen() {
       <MonthDropdown />
       <ScrollView contentContainerStyle={{ paddingBottom: layout.tabBarSpace }}>
         <SavingsPromptBanner />
+        <SmsPromptBanner />
+        <RecurringPromptBanner />
         {/* Salary account card (tap to edit the amount) */}
         <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.xl }}>
           <Pressable onPress={() => nav.navigate('IncomeForm', salary ? { incomeId: salary.id } : undefined)} accessibilityRole="button" accessibilityLabel="Edit salary">
@@ -108,6 +112,27 @@ export default function TimelineScreen() {
             </View>
           );
         })}
+
+        {buckets.length > 0 && (
+          <Pressable
+            onPress={() => nav.navigate('Reconcile')}
+            accessibilityRole="button"
+            accessibilityLabel="Reconcile balance"
+            style={{ marginBottom: spacing.lg }}
+          >
+            <Card>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flex: 1, paddingRight: spacing.md }}>
+                  <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>Reconcile balance</Text>
+                  <Text style={{ color: colors.textMuted, fontSize: font.size.xs }}>
+                    Forgot to log some spending? Enter what you actually have and catch the rest.
+                  </Text>
+                </View>
+                <Text style={{ color: colors.primary, fontWeight: '700' }}>Check</Text>
+              </View>
+            </Card>
+          </Pressable>
+        )}
         </View>
       </ScrollView>
     </View>

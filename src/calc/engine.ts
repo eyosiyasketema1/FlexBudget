@@ -112,6 +112,7 @@ export function categoryRollup(
   return {
     id: category.id,
     name: category.name,
+    bucket: category.bucket ?? null,
     budgetedCents: budgeted,
     actualCents: actual,
     varianceCents: budgeted - actual,

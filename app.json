@@ -14,11 +14,27 @@
       "bundleIdentifier": "com.flexbudget.app"
     },
     "android": {
-      "package": "com.flexbudget.app"
+      "package": "com.flexbudget.app",
+      "permissions": [
+        "android.permission.RECEIVE_SMS",
+        "android.permission.READ_SMS"
+      ]
     },
     "jsEngine": "hermes",
     "plugins": [
-      "expo-font"
-    ]
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "color": "#00C8B3"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f12c8647-4c7d-42fa-a519-22d0fc356524"
+      }
+    },
+    "owner": "eyosiyasketema"
   }
 }

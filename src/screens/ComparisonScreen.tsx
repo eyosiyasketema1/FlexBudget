@@ -14,7 +14,8 @@ import { loadMonthSnapshot } from '@/data/snapshot';
 import { computeTotals, monthDelta, classifyVariance } from '@/calc/engine';
 import { formatCents, formatSignedCents } from '@/utils/money';
 import { prevMonth, formatMonthLabel } from '@/utils/date';
-import type { MonthTotals, MonthDelta } from '@/calc/types';
+import type { MonthTotals } from '@/calc/types';
+import type { MonthDelta } from '@/calc/engine';
 
 // Section 4 — the Mathematical Comparison Matrix.
 // Panel A: Budgeted caps vs actual outlays (this month), color-coded per category.

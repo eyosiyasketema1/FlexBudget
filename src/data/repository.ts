@@ -74,14 +74,33 @@ export async function getCategory(id: string): Promise<CategoryRowDto | null> {
 
 export interface ItemRowDto {
   id: string; categoryId: string; name: string; budgetCapCents: number; actualSpentCents: number;
-  rolloverEnabled: boolean; rolloverCents: number; monthYear: string;
+  rolloverEnabled: boolean; rolloverCents: number; isRecurring: boolean; monthYear: string;
 }
 export async function getItem(id: string): Promise<ItemRowDto | null> {
   const r = await first<any>('SELECT * FROM expense_items WHERE id = ?', [id]);
   return r ? {
     id: r.id, categoryId: r.category_id, name: r.name, budgetCapCents: r.budget_cap_cents, actualSpentCents: r.actual_spent_cents,
-    rolloverEnabled: bool(r.rollover_enabled), rolloverCents: r.rollover_cents, monthYear: r.month_year,
+    rolloverEnabled: bool(r.rollover_enabled), rolloverCents: r.rollover_cents, isRecurring: bool(r.is_recurring), monthYear: r.month_year,
   } : null;
+}
+
+/** Recurring (fixed-bill) sub-categories in a period that haven't been paid yet. */
+export interface UnpaidRecurringDto {
+  id: string; name: string; categoryName: string; budgetCapCents: number;
+}
+export async function listUnpaidRecurring(monthYear: string): Promise<UnpaidRecurringDto[]> {
+  const rows = await all<any>(
+    `SELECT i.id, i.name, i.budget_cap_cents, c.name AS category_name
+       FROM expense_items i
+       JOIN expense_categories c ON c.id = i.category_id
+      WHERE i.month_year = ? AND i.is_recurring = 1 AND i.is_archived = 0
+        AND i.actual_spent_cents = 0
+      ORDER BY i.sort_order`,
+    [monthYear],
+  );
+  return rows.map((r) => ({
+    id: r.id, name: r.name, categoryName: r.category_name, budgetCapCents: r.budget_cap_cents,
+  }));
 }
 
 /** Move a sub-category (item) to a different main category. */
@@ -177,7 +196,7 @@ export async function archiveCategory(id: string) {
 export async function addItem(
   monthYear: string,
   categoryId: string,
-  data: { name: string; budgetCapCents: number; actualSpentCents: number; rolloverEnabled?: boolean },
+  data: { name: string; budgetCapCents: number; actualSpentCents: number; rolloverEnabled?: boolean; isRecurring?: boolean },
 ) {
   await assertUnlocked(monthYear);
   const c = await first<{ n: number }>(
@@ -185,8 +204,8 @@ export async function addItem(
     [categoryId],
   );
   await run(
-    'INSERT INTO expense_items (id, category_id, month_year, name, budget_cap_cents, actual_spent_cents, rollover_enabled, rollover_cents, is_archived, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)',
-    [makeId('E'), categoryId, monthYear, data.name, data.budgetCapCents, data.actualSpentCents, toInt(!!data.rolloverEnabled), c?.n ?? 0, Date.now()],
+    'INSERT INTO expense_items (id, category_id, month_year, name, budget_cap_cents, actual_spent_cents, rollover_enabled, rollover_cents, is_recurring, is_archived, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, 0, ?, ?)',
+    [makeId('E'), categoryId, monthYear, data.name, data.budgetCapCents, data.actualSpentCents, toInt(!!data.rolloverEnabled), toInt(!!data.isRecurring), c?.n ?? 0, Date.now()],
   );
   await rebalanceSavings(monthYear);
   notifyChange();
@@ -194,20 +213,19 @@ export async function addItem(
 
 export async function updateItem(
   id: string,
-  data: { name: string; budgetCapCents: number; actualSpentCents: number; rolloverEnabled?: boolean },
+  data: { name: string; budgetCapCents: number; actualSpentCents: number; rolloverEnabled?: boolean; isRecurring?: boolean },
 ) {
   const row = await getItem(id);
   if (!row) return;
   await assertUnlocked(row.monthYear);
+  await run('UPDATE expense_items SET name = ?, budget_cap_cents = ?, actual_spent_cents = ? WHERE id = ?', [
+    data.name, data.budgetCapCents, data.actualSpentCents, id,
+  ]);
   if (data.rolloverEnabled !== undefined) {
-    await run(
-      'UPDATE expense_items SET name = ?, budget_cap_cents = ?, actual_spent_cents = ?, rollover_enabled = ? WHERE id = ?',
-      [data.name, data.budgetCapCents, data.actualSpentCents, toInt(data.rolloverEnabled), id],
-    );
-  } else {
-    await run('UPDATE expense_items SET name = ?, budget_cap_cents = ?, actual_spent_cents = ? WHERE id = ?', [
-      data.name, data.budgetCapCents, data.actualSpentCents, id,
-    ]);
+    await run('UPDATE expense_items SET rollover_enabled = ? WHERE id = ?', [toInt(data.rolloverEnabled), id]);
+  }
+  if (data.isRecurring !== undefined) {
+    await run('UPDATE expense_items SET is_recurring = ? WHERE id = ?', [toInt(data.isRecurring), id]);
   }
   await rebalanceSavings(row.monthYear);
   notifyChange();
@@ -325,6 +343,50 @@ export async function getCycleStartDayStored(): Promise<number> {
 }
 export async function setCycleStartDayStored(day: number): Promise<void> {
   await setSetting(CYCLE_KEY, String(Math.min(28, Math.max(1, Math.floor(day) || 1))));
+}
+
+const REMINDERS_KEY = 'reminders_enabled';
+export async function getRemindersEnabled(): Promise<boolean> {
+  return (await getSetting(REMINDERS_KEY)) === '1';
+}
+export async function setRemindersEnabled(on: boolean): Promise<void> {
+  await setSetting(REMINDERS_KEY, on ? '1' : '0');
+}
+
+const SMS_KEY = 'sms_capture_enabled';
+export async function getSmsCaptureEnabled(): Promise<boolean> {
+  return (await getSetting(SMS_KEY)) === '1';
+}
+export async function setSmsCaptureEnabled(on: boolean): Promise<void> {
+  await setSetting(SMS_KEY, on ? '1' : '0');
+}
+
+// ── Pending SMS-captured transactions (await user confirmation) ───────────────
+export interface PendingSms { id: string; body: string; amountCents: number; kind: string; createdAt: number; }
+
+export async function addPendingSms(body: string, amountCents: number, kind: string): Promise<void> {
+  await run(
+    'INSERT INTO pending_sms (id, body, amount_cents, kind, created_at) VALUES (?, ?, ?, ?, ?)',
+    [makeId('SMS'), body, amountCents, kind, Date.now()],
+  );
+  notifyChange();
+}
+
+export async function listPendingSms(): Promise<PendingSms[]> {
+  const rows = await all<any>('SELECT * FROM pending_sms ORDER BY created_at DESC');
+  return rows.map((r) => ({ id: r.id, body: r.body, amountCents: r.amount_cents, kind: r.kind, createdAt: r.created_at }));
+}
+
+export async function dismissPendingSms(id: string): Promise<void> {
+  await run('DELETE FROM pending_sms WHERE id = ?', [id]);
+  notifyChange();
+}
+
+/** Confirm a captured SMS: log it against a sub-category, then clear it. */
+export async function confirmPendingSms(smsId: string, itemId: string, amountCents: number): Promise<void> {
+  await recordExpense(itemId, amountCents, 'Captured from SMS');
+  await run('DELETE FROM pending_sms WHERE id = ?', [smsId]);
+  notifyChange();
 }
 
 /** Non-archived categories for a month (for the expense-add picker). */
@@ -447,8 +509,8 @@ export async function copyBaselineToNewMonth(
           rolloverEnabled: bool(it.rollover_enabled), rolloverCents: it.rollover_cents,
         });
         await db.runAsync(
-          'INSERT INTO expense_items (id, category_id, month_year, name, budget_cap_cents, actual_spent_cents, rollover_enabled, rollover_cents, is_archived, sort_order, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 0, ?, ?)',
-          [makeId('E'), newCatId, toMonth, it.name, it.budget_cap_cents, toInt(bool(it.rollover_enabled)), carry, it.sort_order, Date.now()],
+          'INSERT INTO expense_items (id, category_id, month_year, name, budget_cap_cents, actual_spent_cents, rollover_enabled, rollover_cents, is_recurring, is_archived, sort_order, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, 0, ?, ?)',
+          [makeId('E'), newCatId, toMonth, it.name, it.budget_cap_cents, toInt(bool(it.rollover_enabled)), carry, toInt(bool(it.is_recurring)), it.sort_order, Date.now()],
         );
       }
     }

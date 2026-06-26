@@ -6,7 +6,9 @@ import * as Font from 'expo-font';
 
 import { initDatabase } from '@/db';
 import { ensureCurrentMonth } from '@/db/seed';
-import { getCycleStartDayStored } from '@/data/repository';
+import { getCycleStartDayStored, getRemindersEnabled, getSmsCaptureEnabled } from '@/data/repository';
+import { scheduleReminders } from '@/utils/notifications';
+import { startSmsListener } from '@/utils/smsReader';
 import { setCycleStartDayCache } from '@/utils/date';
 import { ActiveMonthProvider } from '@/state/ActiveMonthContext';
 import RootNavigator from '@/navigation/RootNavigator';
@@ -44,6 +46,10 @@ export default function App() {
       setCycleStartDayCache(await getCycleStartDayStored());
       const resolved = await ensureCurrentMonth();
       setInitialMonth(resolved);
+      // Re-arm reminders if the user has them on (schedules persist, but this
+      // keeps them alive across reinstalls / cleared schedules).
+      if (await getRemindersEnabled()) scheduleReminders();
+      if (await getSmsCaptureEnabled()) startSmsListener();
       try {
         await Font.loadAsync(fontAssets);
         applyGeneralSans();

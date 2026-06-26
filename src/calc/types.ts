@@ -63,6 +63,7 @@ export interface ItemVariance {
 export interface CategoryRollup {
   id: string;
   name: string;
+  bucket: Bucket | null;
   budgetedCents: Cents;
   actualCents: Cents;
   varianceCents: Cents;
