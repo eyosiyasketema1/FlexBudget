@@ -8,6 +8,7 @@ import { useActiveMonth } from '@/state/ActiveMonthContext';
 import BottomSheet, { SheetOption } from '@/components/BottomSheet';
 import { colors, spacing, font } from '@/theme/theme';
 import { formatMonthLabel, currentPeriodKey } from '@/utils/date';
+import { useT } from '@/i18n';
 
 // Compact month selector: the active month + chevron, opening a bottom sheet
 // listing the current month and all past months. Months are created
@@ -15,6 +16,7 @@ import { formatMonthLabel, currentPeriodKey } from '@/utils/date';
 export default function MonthDropdown({ safeTop = true }: { safeTop?: boolean }) {
   const insets = useSafeAreaInsets();
   const { activeMonth, setActiveMonth } = useActiveMonth();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [months, setMonths] = useState<{ monthYear: string; isLocked: boolean }[]>([]);
 
@@ -46,7 +48,7 @@ export default function MonthDropdown({ safeTop = true }: { safeTop?: boolean })
         </Pressable>
       </View>
 
-      <BottomSheet visible={open} onClose={() => setOpen(false)} title="Select month">
+      <BottomSheet visible={open} onClose={() => setOpen(false)} title={t('month.select')}>
         {months.map((m) => (
           <SheetOption
             key={m.monthYear}
@@ -56,7 +58,7 @@ export default function MonthDropdown({ safeTop = true }: { safeTop?: boolean })
             trailing={
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 {m.monthYear === thisMonth && (
-                  <Text style={{ color: colors.primary, fontSize: font.size.xs, fontWeight: '700' }}>NOW</Text>
+                  <Text style={{ color: colors.primary, fontSize: font.size.xs, fontWeight: '700' }}>{t('month.now')}</Text>
                 )}
                 {m.isLocked && <Lock size={12} color={colors.textFaint} strokeWidth={2} />}
               </View>

@@ -6,6 +6,7 @@ import { House, Sparkles, Settings2, BadgeCheck } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
 import { colors } from '@/theme/theme';
+import { useT } from '@/i18n';
 import FloatingTabBar from '@/navigation/FloatingTabBar';
 import TimelineScreen from '@/screens/TimelineScreen';
 import BudgetScreen from '@/screens/BudgetScreen';
@@ -68,6 +69,7 @@ function Tabs() {
 }
 
 export default function RootNavigator() {
+  const t = useT();
   return (
     <NavigationContainer theme={navTheme}>
       <Stack.Navigator
@@ -79,19 +81,19 @@ export default function RootNavigator() {
         }}
       >
         <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
-        <Stack.Screen name="Budget" component={BudgetScreen} options={{ title: 'Expense Categories' }} />
-        <Stack.Screen name="Rollover" component={RolloverScreen} options={{ title: 'Rollover' }} />
-        <Stack.Screen name="MonthDetail" component={MonthDetailScreen} options={{ title: 'Month' }} />
+        <Stack.Screen name="Budget" component={BudgetScreen} options={{ title: t('nav.expenseCategories') }} />
+        <Stack.Screen name="Rollover" component={RolloverScreen} options={{ title: t('nav.rollover') }} />
+        <Stack.Screen name="MonthDetail" component={MonthDetailScreen} options={{ title: t('nav.month') }} />
         <Stack.Group screenOptions={{ presentation: 'modal' }}>
-          <Stack.Screen name="RecordExpense" component={RecordExpenseScreen} options={{ title: 'Add Expense' }} />
-          <Stack.Screen name="Reconcile" component={ReconcileScreen} options={{ title: 'Reconcile' }} />
-          <Stack.Screen name="IncomeForm" component={IncomeFormScreen} options={{ title: 'Income' }} />
-          <Stack.Screen name="CategoryForm" component={CategoryFormScreen} options={{ title: 'Category' }} />
+          <Stack.Screen name="RecordExpense" component={RecordExpenseScreen} options={{ title: t('record.title') }} />
+          <Stack.Screen name="Reconcile" component={ReconcileScreen} options={{ title: t('nav.reconcile') }} />
+          <Stack.Screen name="IncomeForm" component={IncomeFormScreen} options={{ title: t('nav.income') }} />
+          <Stack.Screen name="CategoryForm" component={CategoryFormScreen} options={{ title: t('nav.category') }} />
           <Stack.Screen
             name="ItemForm"
             component={ItemFormScreen}
             options={({ route }) => ({
-              title: route.params?.itemId ? 'Edit Expense' : route.params?.categoryId ? 'New Item' : 'Add Expense',
+              title: route.params?.itemId ? t('nav.editExpense') : route.params?.categoryId ? t('nav.newItem') : t('record.title'),
             })}
           />
         </Stack.Group>

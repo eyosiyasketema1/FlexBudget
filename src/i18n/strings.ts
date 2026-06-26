@@ -123,6 +123,20 @@ export const STRINGS: Record<string, Record<Lang, string>> = {
   'item.removeBody': { en: 'Archive this sub-category? History stays intact.', am: 'ይህን ንዑስ ምድብ ያስቀምጡ? ታሪክ ሳይነካ ይቆያል።', om: 'Ramaddii xiqqaa kana kuusi? Seenaan hin tuqamu.', sw: 'Hifadhi kategoria hii? Historia inabaki.' },
   'item.select': { en: 'Select…', am: 'ይምረጡ…', om: 'Filadhu…', sw: 'Chagua…' },
 
+  // ── Month picker / misc ───────────────────────────────────────────────────
+  'month.select': { en: 'Select month', am: 'ወር ይምረጡ', om: 'Ji\'a filadhu', sw: 'Chagua mwezi' },
+  'month.now': { en: 'NOW', am: 'አሁን', om: 'AMMA', sw: 'SASA' },
+
+  // ── Nav header titles ─────────────────────────────────────────────────────
+  'nav.expenseCategories': { en: 'Expense Categories', am: 'የወጪ ምድቦች', om: 'Ramaddiilee Baasii', sw: 'Kategoria za Matumizi' },
+  'nav.rollover': { en: 'Rollover', am: 'ተሸጋጋሪ', om: 'Cehumsa', sw: 'Kusongeshwa' },
+  'nav.month': { en: 'Month', am: 'ወር', om: 'Ji\'a', sw: 'Mwezi' },
+  'nav.reconcile': { en: 'Reconcile', am: 'አስታርቅ', om: 'Madaali', sw: 'Linganisha' },
+  'nav.income': { en: 'Income', am: 'ገቢ', om: 'Galii', sw: 'Mapato' },
+  'nav.category': { en: 'Category', am: 'ምድብ', om: 'Ramaddii', sw: 'Kategoria' },
+  'nav.editExpense': { en: 'Edit Expense', am: 'ወጪ አስተካክል', om: 'Baasii Gulaali', sw: 'Hariri Matumizi' },
+  'nav.newItem': { en: 'New Item', am: 'አዲስ ንጥል', om: 'Wanta Haaraa', sw: 'Kipengele Kipya' },
+
   // ── Reconcile ─────────────────────────────────────────────────────────────
   'reconcile.title': { en: 'Reconcile balance', am: 'ሒሳብ አስታርቅ', om: 'Hir\'ina herregaa madaali', sw: 'Linganisha salio' },
   'reconcile.intro': { en: 'Don\'t log every coffee. Just tell the app how much money you actually have right now — it works out what you forgot to record.', am: 'እያንዳንዱን ቡና አይመዝግቡ። አሁን በትክክል ምን ያህል ገንዘብ እንዳለዎት ይንገሩ — የረሱትን ያሰላል።', om: 'Buna hunda hin galmeessin. Amma maallaqa hangam akka qabdu appiitti himi — wanta galmeessuu dagatte ni hojjeta.', sw: 'Usirekodi kila kahawa. Iambie programu una pesa kiasi gani sasa — itahesabu uliyosahau kurekodi.' },
