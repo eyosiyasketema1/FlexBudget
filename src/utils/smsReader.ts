@@ -1,9 +1,12 @@
+import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
 import { parseTransactionSms } from './smsParse';
 import { addPendingSms } from '@/data/repository';
 
-// Wraps the native incoming-SMS reader. The module only exists in a dev/
-// production build (not Expo Go), so we require it defensively — the app keeps
-// working everywhere; SMS capture simply stays off where it's unavailable.
+// Wraps the native incoming-SMS reader (@maniac-tech/react-native-expo-read-sms).
+// The native module only exists in a dev/production build, never in Expo Go, so
+// we require it defensively and detect the linked native module directly via
+// NativeModules — the app keeps working everywhere; capture just stays off when
+// the native side isn't present.
 let mod: any = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -12,18 +15,29 @@ try {
   mod = null;
 }
 
-// `mod.default` is the underlying NativeModule (RNExpoReadSms). It's only
-// non-null when the native code is actually in the build — so this is true in a
-// dev/production build and false in Expo Go or a build made before the module
-// was added.
-export function isSmsModuleAvailable(): boolean {
-  return !!(mod && mod.default && typeof mod.startReadSMS === 'function');
+function nativePresent(): boolean {
+  return Platform.OS === 'android' && !!NativeModules.RNExpoReadSms;
 }
 
+export function isSmsModuleAvailable(): boolean {
+  return !!(mod && typeof mod.startReadSMS === 'function' && nativePresent());
+}
+
+// Request RECEIVE_SMS + READ_SMS ourselves. (The library's own request helper
+// has a bug — it compares the requestMultiple() result object to a string and
+// returns false even after the user grants — so we handle it directly here.)
 export async function requestSmsPermission(): Promise<boolean> {
-  if (!mod?.requestReadSMSPermission) return false;
+  if (Platform.OS !== 'android') return false;
   try {
-    return (await mod.requestReadSMSPermission()) === true;
+    const res = await PermissionsAndroid.requestMultiple([
+      PermissionsAndroid.PERMISSIONS.RECEIVE_SMS,
+      PermissionsAndroid.PERMISSIONS.READ_SMS,
+    ]);
+    const granted = PermissionsAndroid.RESULTS.GRANTED;
+    return (
+      res[PermissionsAndroid.PERMISSIONS.RECEIVE_SMS] === granted &&
+      res[PermissionsAndroid.PERMISSIONS.READ_SMS] === granted
+    );
   } catch {
     return false;
   }
@@ -41,8 +55,8 @@ export async function ingestSmsBody(body: string): Promise<boolean> {
   return true;
 }
 
-// The library calls back as (status, sms). `sms` is usually the message string,
-// but can be an object with a body/message field depending on the device.
+// The native module emits `received_sms` as a single string: "[address, body]".
+// The JS callback receives (status, sms). Pull the string that carries digits.
 function extractBody(args: any[]): string | null {
   for (const a of args) {
     if (typeof a === 'string' && /\d/.test(a) && a.length > 4 && !/^success$/i.test(a)) return a;
@@ -58,9 +72,9 @@ let started = false;
 /** Request permission and begin listening for incoming transaction SMS. */
 export async function startSmsListener(): Promise<boolean> {
   if (!isSmsModuleAvailable()) return false;
-  if (started) return true;
   const granted = await requestSmsPermission();
   if (!granted) return false;
+  if (started) return true;
   try {
     mod.startReadSMS(
       (...args: any[]) => {

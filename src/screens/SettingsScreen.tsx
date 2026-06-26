@@ -50,7 +50,11 @@ export default function SettingsScreen() {
       const started = await startSmsListener();
       await setSmsCaptureEnabled(started);
       setSmsOn(started);
-      if (!started) Alert.alert('Permission needed', 'Allow SMS access for FlexBudget so it can spot your telebirr/CBE transactions.');
+      if (started) {
+        Alert.alert('SMS reading on', 'Keep FlexBudget open. New bank/telecom payment messages will appear on Home for you to confirm. Try "Simulate a transaction SMS" to see it now.');
+      } else {
+        Alert.alert('Permission needed', 'Allow SMS access for FlexBudget so it can spot your bank/telecom transactions. If you denied it, enable SMS for FlexBudget in your phone\'s app settings, then toggle this again.');
+      }
     } else {
       await setSmsCaptureEnabled(false);
     }
