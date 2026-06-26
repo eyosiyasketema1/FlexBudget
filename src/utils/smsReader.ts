@@ -63,16 +63,11 @@ function listInbox(minDate: number): Promise<{ body: string; date: number }[]> {
   });
 }
 
-/** Scan the inbox for transactions newer than the last scan; queue any debits. */
-export async function scanInbox(): Promise<number> {
+/** Shared scan: read inbox from `sinceMs`, queue debits, advance last-scan. */
+async function doScan(sinceMs: number): Promise<number> {
   if (!isSmsModuleAvailable()) return 0;
   const last = await getSmsLastScan();
-  // First ever scan: set a baseline of "now" so we don't import old history.
-  if (last === 0) {
-    await setSmsLastScan(Date.now());
-    return 0;
-  }
-  const msgs = await listInbox(last + 1);
+  const msgs = await listInbox(Math.max(0, sinceMs));
   let captured = 0;
   let maxDate = last;
   for (const m of msgs) {
@@ -81,6 +76,31 @@ export async function scanInbox(): Promise<number> {
   }
   if (maxDate > last) await setSmsLastScan(maxDate);
   return captured;
+}
+
+/**
+ * Automatic incremental scan (launch / resume / poll): only messages newer than
+ * the last scan, so it never re-imports old history. First run sets a "now"
+ * baseline.
+ */
+export async function scanInbox(): Promise<number> {
+  if (!isSmsModuleAvailable()) return 0;
+  const last = await getSmsLastScan();
+  if (last === 0) {
+    await setSmsLastScan(Date.now());
+    return 0;
+  }
+  return doScan(last + 1);
+}
+
+/**
+ * Manual scan triggered by the user: looks back over the last `days` days so it
+ * picks up real transactions already sitting in the inbox (good for testing /
+ * catching up). Duplicates are skipped by addPendingSms.
+ */
+export async function scanRecent(days = 7): Promise<number> {
+  if (!isSmsModuleAvailable()) return 0;
+  return doScan(Date.now() - days * 24 * 60 * 60 * 1000);
 }
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;

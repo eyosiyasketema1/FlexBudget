@@ -17,7 +17,7 @@ import { exportBackup, importBackup } from '@/data/backup';
 import { getCycleStartDayStored, setCycleStartDayStored, getRemindersEnabled, setRemindersEnabled, getSmsCaptureEnabled, setSmsCaptureEnabled } from '@/data/repository';
 import { ensureCurrentMonth } from '@/db/seed';
 import { applyReminderSetting, sendTestReminder } from '@/utils/notifications';
-import { enableSmsCapture, stopSmsCapture, isSmsModuleAvailable, ingestSmsBody, scanInbox } from '@/utils/smsReader';
+import { enableSmsCapture, stopSmsCapture, isSmsModuleAvailable, ingestSmsBody, scanRecent } from '@/utils/smsReader';
 import { setCycleStartDayCache, formatPeriodRange, currentPeriodKey } from '@/utils/date';
 
 const ordinal = (n: number) => {
@@ -72,8 +72,8 @@ export default function SettingsScreen() {
       Alert.alert('Needs a full build', 'Reading real messages needs the dev build (eas build). The simulate button works without it.');
       return;
     }
-    const n = await scanInbox();
-    Alert.alert('Scan complete', n > 0 ? `Found ${n} new transaction${n === 1 ? '' : 's'}. Check Home.` : 'No new transaction messages since the last scan.');
+    const n = await scanRecent(7);
+    Alert.alert('Scan complete', n > 0 ? `Found ${n} transaction${n === 1 ? '' : 's'} in the last 7 days. Check Home.` : 'No transaction messages found in the last 7 days. Make sure SMS permission is granted, then try buying a small package and scan again.');
   };
 
   const toggleReminders = async (on: boolean) => {
