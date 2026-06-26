@@ -13,7 +13,7 @@ import { useMonth } from '@/data/useMonth';
 import { computeBudgetAllocation } from '@/calc/analytics';
 import { rebalanceSavings } from '@/data/repository';
 import { formatCents } from '@/utils/money';
-import { useT } from '@/i18n';
+import { useT, useLocalizeName } from '@/i18n';
 import { BUCKET_ORDER } from '@/db/template';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
@@ -38,6 +38,7 @@ export default function BudgetScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { activeMonth } = useActiveMonth();
   const t = useT();
+  const localize = useLocalizeName();
   const { snapshot, rollups, isLocked } = useMonth(activeMonth);
 
   // Keep the plan zero-based: Savings absorbs the difference so total = income.
@@ -83,7 +84,7 @@ export default function BudgetScreen() {
             <Card key={cat.id} style={{ marginBottom: spacing.lg }}>
               <Pressable disabled={isLocked} onPress={() => nav.navigate('CategoryForm', { categoryId: cat.id })}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>{cat.name}</Text>
+                  <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>{localize(cat.name)}</Text>
                   <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>{formatCents(cat.budgetedCents)}</Text>
                 </View>
                 {cat.targetPercent != null && (
@@ -106,7 +107,7 @@ export default function BudgetScreen() {
                   onPress={() => nav.navigate('ItemForm', { categoryId: cat.id, itemId: item.id })}
                   style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}
                 >
-                  <Text style={{ color: colors.text, fontSize: font.size.sm, flex: 1 }}>{item.name}</Text>
+                  <Text style={{ color: colors.text, fontSize: font.size.sm, flex: 1 }}>{localize(item.name)}</Text>
                   <Text style={{ color: colors.text, fontSize: font.size.sm, fontWeight: '600' }}>{formatCents(item.budgetCapCents)}</Text>
                   {!isLocked && <ChevronRight size={16} color={colors.textFaint} style={{ marginLeft: 4 }} />}
                 </Pressable>

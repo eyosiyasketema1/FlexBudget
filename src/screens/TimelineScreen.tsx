@@ -10,7 +10,7 @@ import { colors, spacing, font, radius, layout } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useMonth } from '@/data/useMonth';
 import { formatCents } from '@/utils/money';
-import { useT } from '@/i18n';
+import { useT, useLocalizeName } from '@/i18n';
 import { BUCKET_ORDER } from '@/db/template';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import type { CategoryRollup, ItemVariance } from '@/calc/types';
@@ -21,6 +21,7 @@ function bucketRank(bucket: string | null | undefined): number {
 }
 
 function ItemRow({ item, onPress }: { item: ItemVariance; onPress: () => void }) {
+  const localize = useLocalizeName();
   const pct = Math.min(item.percentUsed, 100);
   const over = item.state === 'over';
   return (
@@ -31,7 +32,7 @@ function ItemRow({ item, onPress }: { item: ItemVariance; onPress: () => void })
       style={{ marginBottom: spacing.md }}
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-        <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '500' }}>{item.name}</Text>
+        <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '500' }}>{localize(item.name)}</Text>
         <Text style={{ color: over ? colors.negative : colors.textMuted, fontSize: font.size.sm }}>
           <Text style={{ color: colors.text, fontWeight: '700' }}>{formatCents(item.actualSpentCents)}</Text>
           {' / '}{formatCents(item.effectiveBudgetCents)}
@@ -48,6 +49,7 @@ export default function TimelineScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { activeMonth } = useActiveMonth();
   const t = useT();
+  const localize = useLocalizeName();
   const { snapshot, totals, rollups } = useMonth(activeMonth);
   const [hidden, setHidden] = useState(false);
 
@@ -67,7 +69,7 @@ export default function TimelineScreen() {
         <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.xl }}>
           <Pressable onPress={() => nav.navigate('IncomeForm', salary ? { incomeId: salary.id } : undefined)} accessibilityRole="button" accessibilityLabel="Edit salary">
             <AccountCard
-              title={salary?.label ?? t('home.salaryAccount')}
+              title={salary ? localize(salary.label) : t('home.salaryAccount')}
               amountCents={incomeTotal}
               spentCents={spent}
               budgetCents={budget}
@@ -88,7 +90,7 @@ export default function TimelineScreen() {
           return (
             <View key={cat.id} style={{ marginBottom: spacing.lg }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm }}>
-                <Text style={{ color: colors.text, fontSize: font.size.lg, fontWeight: '700' }}>{cat.name}</Text>
+                <Text style={{ color: colors.text, fontSize: font.size.lg, fontWeight: '700' }}>{localize(cat.name)}</Text>
                 <Text style={{ color: colors.textMuted, fontSize: font.size.sm }}>
                   {formatCents(cat.actualCents)} / {formatCents(cat.budgetedCents)}  ·  {catPct}%
                 </Text>

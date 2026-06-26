@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { LucideIcon } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import { Tags, ShieldCheck, Download, Upload, ChevronRight, ChevronDown, CalendarClock, BellRing, MessageSquareText, Languages } from 'lucide-react-native';
+import { Tags, ShieldCheck, Download, Upload, ChevronRight, ChevronDown, CalendarClock, BellRing, MessageSquareText, Languages, CalendarDays } from 'lucide-react-native';
 
 import Button from '@/components/Button';
 import ScreenTitle from '@/components/ScreenTitle';
@@ -30,12 +30,13 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { setActiveMonth } = useActiveMonth();
-  const { t, lang, setLang } = useLang();
+  const { t, lang, setLang, calendar, setCalendar } = useLang();
   const [busy, setBusy] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
   const [cycleDay, setCycleDay] = useState(1);
   const [cycleOpen, setCycleOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [calOpen, setCalOpen] = useState(false);
   const [reminders, setReminders] = useState(false);
   const [smsOn, setSmsOn] = useState(false);
 
@@ -171,6 +172,14 @@ export default function SettingsScreen() {
       />
       {hairline}
       <Row
+        icon={CalendarDays}
+        title={t('settings.calendar')}
+        subtitle={calendar === 'ethiopian' ? t('calendar.ethiopian') : t('calendar.gregorian')}
+        onPress={() => setCalOpen(true)}
+        right={<ChevronRight size={20} color={colors.textFaint} />}
+      />
+      {hairline}
+      <Row
         icon={CalendarClock}
         title={t('settings.cycle')}
         subtitle={cycleDay === 1 ? t('settings.cycle.calendar') : t('settings.cycle.startsOn', { day: ordinal(cycleDay), range: formatPeriodRange(currentPeriodKey(), cycleDay) })}
@@ -237,6 +246,11 @@ export default function SettingsScreen() {
         {LANGS.map((l) => (
           <SheetOption key={l} label={LANG_NAMES[l]} selected={l === lang} onPress={() => { setLang(l); setLangOpen(false); }} />
         ))}
+      </BottomSheet>
+
+      <BottomSheet visible={calOpen} onClose={() => setCalOpen(false)} title={t('settings.calendarSheet')}>
+        <SheetOption label={t('calendar.gregorian')} selected={calendar === 'gregorian'} onPress={() => { setCalendar('gregorian'); setCalOpen(false); }} />
+        <SheetOption label={t('calendar.ethiopian')} selected={calendar === 'ethiopian'} onPress={() => { setCalendar('ethiopian'); setCalOpen(false); }} />
       </BottomSheet>
 
       <BottomSheet visible={cycleOpen} onClose={() => setCycleOpen(false)} title={t('settings.cycleSheet')}>

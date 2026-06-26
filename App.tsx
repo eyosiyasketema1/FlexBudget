@@ -11,7 +11,8 @@ import { scheduleReminders } from '@/utils/notifications';
 import { startSmsCapture } from '@/utils/smsReader';
 import { setCycleStartDayCache } from '@/utils/date';
 import { ActiveMonthProvider } from '@/state/ActiveMonthContext';
-import { LanguageProvider, getStoredLang, Lang } from '@/i18n';
+import { LanguageProvider, getStoredLang, getStoredCalendar, Lang, CalendarSystem } from '@/i18n';
+import { setLangCache, setCalendarCache } from '@/utils/date';
 import RootNavigator from '@/navigation/RootNavigator';
 import { colors } from '@/theme/theme';
 import { FONT_FAMILY, fontAssets } from '@/theme/fonts';
@@ -40,11 +41,17 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [initialMonth, setInitialMonth] = useState<string | undefined>(undefined);
   const [initialLang, setInitialLang] = useState<Lang>('en');
+  const [initialCalendar, setInitialCalendar] = useState<CalendarSystem>('gregorian');
 
   useEffect(() => {
     (async () => {
       await initDatabase();
-      setInitialLang(await getStoredLang());
+      const lang = await getStoredLang();
+      const calendar = await getStoredCalendar();
+      setInitialLang(lang);
+      setInitialCalendar(calendar);
+      setLangCache(lang);
+      setCalendarCache(calendar);
       // Load the pay-cycle start day, then resolve the current period safely.
       setCycleStartDayCache(await getCycleStartDayStored());
       const resolved = await ensureCurrentMonth();
@@ -72,7 +79,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <LanguageProvider initialLang={initialLang}>
+      <LanguageProvider initialLang={initialLang} initialCalendar={initialCalendar}>
         <ActiveMonthProvider initialMonth={initialMonth}>
           <StatusBar style="dark" />
           <RootNavigator />

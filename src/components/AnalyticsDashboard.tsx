@@ -18,7 +18,7 @@ import {
 } from '@/calc/analytics';
 import { formatCents } from '@/utils/money';
 import { formatMonthShort } from '@/utils/date';
-import { useT } from '@/i18n';
+import { useT, useLocalizeName } from '@/i18n';
 import type { MonthSnapshot, Bucket } from '@/calc/types';
 
 const BUCKET_COLOR: Record<Bucket, string> = { needs: '#06C167', wants: '#7C5CFF', savings: '#F5A623', church: '#19B5C9' };
@@ -36,6 +36,7 @@ function Bar({ pct, color, over }: { pct: number; color: string; over?: boolean 
 // is the full history (for trends).
 export default function AnalyticsDashboard({ snapshot, snapshots }: { snapshot: MonthSnapshot; snapshots: MonthSnapshot[] }) {
   const tr = useT();
+  const localize = useLocalizeName();
   const safe = computeSafeToSpend(snapshot);
   const comp = computeComposition(snapshot);
   const top = topSpendItems(snapshot, 5);
@@ -105,7 +106,7 @@ export default function AnalyticsDashboard({ snapshot, snapshots }: { snapshot: 
           <Card style={{ marginBottom: spacing.lg }}>
             {top.map((it, i) => (
               <View key={it.id} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: i < top.length - 1 ? spacing.sm : 0 }}>
-                <Text style={{ color: colors.text, fontSize: font.size.sm }}>{it.name}</Text>
+                <Text style={{ color: colors.text, fontSize: font.size.sm }}>{localize(it.name)}</Text>
                 <Text style={{ color: colors.text, fontSize: font.size.sm, fontWeight: '600' }}>{formatCents(it.actualSpentCents)}</Text>
               </View>
             ))}
@@ -121,7 +122,7 @@ export default function AnalyticsDashboard({ snapshot, snapshots }: { snapshot: 
           </View>
           {over.map((v) => (
             <View key={v.id} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-              <Text style={{ color: colors.text, fontSize: font.size.sm }}>{v.name}</Text>
+              <Text style={{ color: colors.text, fontSize: font.size.sm }}>{localize(v.name)}</Text>
               <Text style={{ color: colors.negative, fontSize: font.size.sm, fontWeight: '600' }}>{tr('analytics.overAmount', { amount: formatCents(-v.varianceCents) })}</Text>
             </View>
           ))}

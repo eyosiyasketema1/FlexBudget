@@ -1,5 +1,26 @@
 // month_year helpers. Format is always "YYYY-MM".
 
+import { ethiopianMonthLabel } from './ethiopic';
+
+type LangCode = 'en' | 'am' | 'om' | 'sw';
+type CalendarSystem = 'gregorian' | 'ethiopian';
+
+// Localized Gregorian month names (short). am/om are best-effort transliterations
+// (worth a native-speaker pass); the Ethiopian calendar gives proper local months.
+const GREG_MONTHS: Record<LangCode, string[]> = {
+  en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  sw: ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ago', 'Sep', 'Okt', 'Nov', 'Des'],
+  om: ['Jan', 'Feb', 'Mar', 'Ebl', 'Mey', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+  am: ['ጃንዩ', 'ፌብሩ', 'ማርች', 'ኤፕሪ', 'ሜይ', 'ጁን', 'ጁላይ', 'ኦገስ', 'ሴፕቴ', 'ኦክቶ', 'ኖቬም', 'ዲሴም'],
+};
+
+// Display caches, set by the app from the saved language + calendar settings.
+let _lang: LangCode = 'en';
+let _calendar: CalendarSystem = 'gregorian';
+export function setLangCache(l: string): void { _lang = (['en', 'am', 'om', 'sw'].includes(l) ? l : 'en') as LangCode; }
+export function setCalendarCache(c: string): void { _calendar = c === 'ethiopian' ? 'ethiopian' : 'gregorian'; }
+export function getCalendarCache(): CalendarSystem { return _calendar; }
+
 export function currentMonthYear(d: Date = new Date()): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -27,18 +48,18 @@ export function daysInMonth(monthYear: string): number {
   return new Date(y, m, 0).getDate();
 }
 
-/** "2026-06" -> "Jun 2026" for display. */
+/** "2026-06" -> "Jun 2026" (Gregorian) or "ሰኔ 2018" (Ethiopian), localized. */
 export function formatMonthLabel(monthYear: string): string {
   const [y, m] = monthYear.split('-').map(Number);
-  const date = new Date(y, m - 1, 1);
-  return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  if (_calendar === 'ethiopian') return ethiopianMonthLabel(y, m, _lang);
+  return `${(GREG_MONTHS[_lang] ?? GREG_MONTHS.en)[m - 1]} ${y}`;
 }
 
-/** Short form "Jun" for the timeline banner. */
+/** Short month form for chart axes / banners, localized + calendar-aware. */
 export function formatMonthShort(monthYear: string): string {
   const [y, m] = monthYear.split('-').map(Number);
-  const date = new Date(y, m - 1, 1);
-  return date.toLocaleDateString('en-US', { month: 'short' });
+  if (_calendar === 'ethiopian') return ethiopianMonthLabel(y, m, _lang).split(' ')[0].slice(0, 4);
+  return (GREG_MONTHS[_lang] ?? GREG_MONTHS.en)[m - 1];
 }
 
 // ── Pay cycle ──────────────────────────────────────────────────────────────
@@ -91,7 +112,9 @@ export function daysElapsedInPeriod(key: string, today: Date = new Date(), start
 /** "Jun 25 – Jul 24" label for a period (only useful when start day ≠ 1). */
 export function formatPeriodRange(key: string, startDay: number = _cycleStartDay): string {
   if (startDay === 1) return formatMonthLabel(key);
+  // In the Ethiopian calendar, fall back to the month label (day math differs).
+  if (_calendar === 'ethiopian') return formatMonthLabel(key);
   const { start, end } = periodRange(key, startDay);
-  const f = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const f = (d: Date) => `${(GREG_MONTHS[_lang] ?? GREG_MONTHS.en)[d.getMonth()]} ${d.getDate()}`;
   return `${f(start)} – ${f(end)}`;
 }

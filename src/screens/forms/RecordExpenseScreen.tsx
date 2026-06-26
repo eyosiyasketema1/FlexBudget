@@ -11,7 +11,7 @@ import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { listSubcategories, recordExpense, listExpenseEntries, deleteExpenseEntry, SubcategoryRow, ExpenseEntry } from '@/data/repository';
 import { onDataChange } from '@/db';
 import { toCents, formatCents } from '@/utils/money';
-import { useT } from '@/i18n';
+import { useT, useLocalizeName } from '@/i18n';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 export default function RecordExpenseScreen() {
@@ -20,6 +20,7 @@ export default function RecordExpenseScreen() {
   const presetItemId = route.params?.itemId;
   const { activeMonth } = useActiveMonth();
   const t = useT();
+  const localize = useLocalizeName();
 
   const [subs, setSubs] = useState<SubcategoryRow[]>([]);
   const [chosen, setChosen] = useState<SubcategoryRow | null>(null);
@@ -83,7 +84,7 @@ export default function RecordExpenseScreen() {
         onPress={() => (subs.length ? setPickerOpen(true) : Alert.alert(t('record.noSubsTitle'), t('record.noSubsBody')))}
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 14, marginBottom: spacing.md }}
       >
-        <Text style={{ color: chosen ? colors.text : colors.textFaint, fontSize: font.size.md, fontWeight: '600' }}>{chosen ? chosen.name : t('record.select')}</Text>
+        <Text style={{ color: chosen ? colors.text : colors.textFaint, fontSize: font.size.md, fontWeight: '600' }}>{chosen ? localize(chosen.name) : t('record.select')}</Text>
         <ChevronDown size={18} color={colors.textMuted} strokeWidth={2} />
       </Pressable>
 
@@ -92,7 +93,7 @@ export default function RecordExpenseScreen() {
         {t('record.mainCategory')}
       </Text>
       <View style={{ backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.hairline, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 14, marginBottom: spacing.lg }}>
-        <Text style={{ color: chosen ? colors.textMuted : colors.textFaint, fontSize: font.size.md }}>{chosen ? chosen.categoryName : '—'}</Text>
+        <Text style={{ color: chosen ? colors.textMuted : colors.textFaint, fontSize: font.size.md }}>{chosen ? localize(chosen.categoryName) : '—'}</Text>
       </View>
 
       <Field label={t('record.iPaid')} value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" />
@@ -104,7 +105,7 @@ export default function RecordExpenseScreen() {
       {chosen && entries.length > 0 && (
         <View style={{ marginTop: spacing.xl }}>
           <Text style={{ color: colors.textMuted, fontSize: font.size.xs, fontWeight: '700', letterSpacing: font.tracking.caps, textTransform: 'uppercase', marginBottom: spacing.sm }}>
-            {t('record.payments', { name: chosen.name })}
+            {t('record.payments', { name: localize(chosen.name) })}
           </Text>
           {entries.map((e) => (
             <View key={e.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.hairline }}>
@@ -127,9 +128,9 @@ export default function RecordExpenseScreen() {
       <BottomSheet visible={pickerOpen} onClose={() => setPickerOpen(false)} title={t('record.chooseSheet')}>
         {groups.map((g) => (
           <View key={g.categoryName}>
-            <SheetGroupLabel label={g.categoryName} />
+            <SheetGroupLabel label={localize(g.categoryName)} />
             {g.rows.map((s) => (
-              <SheetOption key={s.id} label={s.name} selected={chosen?.id === s.id} onPress={() => { setChosen(s); setPickerOpen(false); }} />
+              <SheetOption key={s.id} label={localize(s.name)} selected={chosen?.id === s.id} onPress={() => { setChosen(s); setPickerOpen(false); }} />
             ))}
           </View>
         ))}

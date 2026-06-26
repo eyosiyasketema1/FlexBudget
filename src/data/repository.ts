@@ -361,6 +361,14 @@ export async function setSmsCaptureEnabled(on: boolean): Promise<void> {
   await setSetting(SMS_KEY, on ? '1' : '0');
 }
 
+const CALENDAR_KEY = 'calendar_system';
+export async function getCalendarSystem(): Promise<'gregorian' | 'ethiopian'> {
+  return (await getSetting(CALENDAR_KEY)) === 'ethiopian' ? 'ethiopian' : 'gregorian';
+}
+export async function setCalendarSystem(c: 'gregorian' | 'ethiopian'): Promise<void> {
+  await setSetting(CALENDAR_KEY, c);
+}
+
 const SMS_LAST_SCAN_KEY = 'sms_last_scan';
 export async function getSmsLastScan(): Promise<number> {
   const v = await getSetting(SMS_LAST_SCAN_KEY);

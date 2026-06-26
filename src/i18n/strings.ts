@@ -43,6 +43,11 @@ export const STRINGS: Record<string, Record<Lang, string>> = {
   'settings.cycleSheet': { en: 'Budget cycle starts on', am: 'የበጀት ዑደት የሚጀምረው', om: 'Marsaan baajataa kan jalqabu', sw: 'Mzunguko wa bajeti huanza' },
   'settings.cycle.first': { en: '1st (calendar month)', am: '1ኛ (የቀን መቁጠሪያ ወር)', om: '1ffaa (ji\'a kalandarii)', sw: 'Tarehe 1 (mwezi wa kalenda)' },
   'settings.langSheet': { en: 'App language', am: 'የመተግበሪያ ቋንቋ', om: 'Afaan appii', sw: 'Lugha ya programu' },
+  'settings.calendar': { en: 'Calendar', am: 'የቀን አቆጣጠር', om: 'Kalandarii', sw: 'Kalenda' },
+  'settings.calendar.sub': { en: 'Show dates in the Gregorian or Ethiopian calendar', am: 'ቀኖችን በግሪጎሪያን ወይም በኢትዮጵያ አቆጣጠር አሳይ', om: 'Guyyaa kalandarii Giriigooriyaan ykn Itoophiyaatiin agarsiisi', sw: 'Onyesha tarehe kwa kalenda ya Gregori au Ethiopia' },
+  'settings.calendarSheet': { en: 'Calendar system', am: 'የቀን አቆጣጠር ስርዓት', om: 'Sirna kalandarii', sw: 'Mfumo wa kalenda' },
+  'calendar.gregorian': { en: 'Gregorian', am: 'ግሪጎሪያን', om: 'Giriigooriyaan', sw: 'Gregori' },
+  'calendar.ethiopian': { en: 'Ethiopian (ግዕዝ)', am: 'የኢትዮጵያ (ግዕዝ)', om: 'Itoophiyaa (Geez)', sw: 'Ethiopia (Geez)' },
 
   // ── To-confirm tab ──────────────────────────────────────────────────────
   'confirm.title': { en: 'To confirm', am: 'ለማረጋገጥ', om: 'Mirkaneessuf', sw: 'Thibitisha' },
@@ -70,6 +75,23 @@ export const STRINGS: Record<string, Record<Lang, string>> = {
 
   // ── Home ──────────────────────────────────────────────────────────────────
   'home.salaryAccount': { en: 'Salary Account', am: 'የደመወዝ ሂሳብ', om: 'Herrega Mindaa', sw: 'Akaunti ya Mshahara' },
+  // Default seeded names — localized at display only (user-renamed names pass through unchanged).
+  'def.Rent': { en: 'Rent', am: 'ኪራይ', om: 'Kiraa', sw: 'Kodi' },
+  'def.Electric': { en: 'Electric', am: 'ኤሌክትሪክ', om: 'Ibsaa', sw: 'Umeme' },
+  'def.Internet': { en: 'Internet', am: 'ኢንተርኔት', om: 'Intarneetii', sw: 'Intaneti' },
+  'def.Water': { en: 'Water', am: 'ውሃ', om: 'Bishaan', sw: 'Maji' },
+  'def.Home expense': { en: 'Home expense', am: 'የቤት ወጪ', om: 'Baasii manaa', sw: 'Gharama za nyumbani' },
+  'def.Transport': { en: 'Transport', am: 'ትራንስፖርት', om: 'Geejjiba', sw: 'Usafiri' },
+  'def.Utilities personal': { en: 'Utilities personal', am: 'የግል አገልግሎቶች', om: 'Tajaajila dhuunfaa', sw: 'Huduma binafsi' },
+  'def.Date': { en: 'Date', am: 'ቀጠሮ', om: 'Beellama', sw: 'Tarehe ya mapenzi' },
+  'def.Coffee': { en: 'Coffee', am: 'ቡና', om: 'Buna', sw: 'Kahawa' },
+  'def.Gym': { en: 'Gym', am: 'ጂም', om: 'Jiimii', sw: 'Mazoezi' },
+  'def.Tithe and gift': { en: 'Tithe and gift', am: 'አስራትና ስጦታ', om: 'Kudhanaffaa fi kennaa', sw: 'Zaka na zawadi' },
+  'def.Savings': { en: 'Savings', am: 'ቁጠባ', om: 'Qusannoo', sw: 'Akiba' },
+  'def.Salary Account': { en: 'Salary Account', am: 'የደመወዝ ሂሳብ', om: 'Herrega Mindaa', sw: 'Akaunti ya Mshahara' },
+  'def.Needs': { en: 'Needs', am: 'ፍላጎቶች', om: 'Barbaachisaa', sw: 'Mahitaji' },
+  'def.Wants': { en: 'Wants', am: 'ምኞቶች', om: 'Fedhii', sw: 'Matamanio' },
+  'def.Church': { en: 'Church', am: 'ቤተክርስቲያን', om: 'Bataskaana', sw: 'Kanisa' },
   'home.show': { en: 'Show', am: 'አሳይ', om: 'Agarsiisi', sw: 'Onyesha' },
   'home.hide': { en: 'Hide', am: 'ደብቅ', om: 'Dhoksi', sw: 'Ficha' },
   'home.noExpenses': { en: 'No expenses set up for this month.', am: 'ለዚህ ወር የተዘጋጁ ወጪዎች የሉም።', om: 'Ji\'a kanaaf baasiiwwan qophaa\'an hin jiran.', sw: 'Hakuna matumizi yaliyowekwa kwa mwezi huu.' },
