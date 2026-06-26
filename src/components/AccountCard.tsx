@@ -3,6 +3,7 @@ import { View, Text, Pressable, ImageBackground, LayoutChangeEvent } from 'react
 import { Plus } from 'lucide-react-native';
 import { formatCents } from '@/utils/money';
 import { radius } from '@/theme/theme';
+import { useT } from '@/i18n';
 
 // Dark "account" card. The background is the supplied artwork (card-bg.png,
 // 1110×630 = 3× of 370×210). The card keeps that aspect ratio so the image
@@ -44,6 +45,7 @@ export function AccountCard({
   title: string; amountCents: number; spentCents: number; budgetCents: number; hidden: boolean; onToggleHidden: () => void;
 }) {
   const fraction = budgetCents > 0 ? spentCents / budgetCents : 0;
+  const t = useT();
   return (
     <ImageBackground
       source={cardBg}
@@ -58,16 +60,16 @@ export function AccountCard({
           <Text style={{ color: CARD.amount, fontSize: 32, fontWeight: '800', letterSpacing: -0.5 }}>
             {hidden ? '••••••' : formatCents(amountCents)}
           </Text>
-          <Pressable onPress={onToggleHidden} hitSlop={8} accessibilityRole="button" accessibilityLabel={hidden ? 'Show amount' : 'Hide amount'}>
-            <Text style={{ color: CARD.secondary, fontSize: 14, textDecorationLine: 'underline' }}>{hidden ? 'Show' : 'Hide'}</Text>
+          <Pressable onPress={onToggleHidden} hitSlop={8} accessibilityRole="button" accessibilityLabel={hidden ? t('home.show') : t('home.hide')}>
+            <Text style={{ color: CARD.secondary, fontSize: 14, textDecorationLine: 'underline' }}>{hidden ? t('home.show') : t('home.hide')}</Text>
           </Pressable>
         </View>
 
         <View>
           <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.10)', marginBottom: 14 }} />
           <Text style={{ color: CARD.secondary, fontSize: 13, marginBottom: 8 }}>
-            Spent <Text style={{ color: CARD.amount, fontWeight: '700' }}>{hidden ? '••••' : formatCents(spentCents)}</Text>
-            {'  / '}{hidden ? '••••••' : formatCents(budgetCents)} budgeted
+            {t('card.spent')} <Text style={{ color: CARD.amount, fontWeight: '700' }}>{hidden ? '••••' : formatCents(spentCents)}</Text>
+            {'  / '}{hidden ? '••••••' : formatCents(budgetCents)} {t('card.budgeted')}
           </Text>
           <Barcode fraction={fraction} />
         </View>

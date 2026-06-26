@@ -11,6 +11,7 @@ import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { listSubcategories, recordExpense, listExpenseEntries, deleteExpenseEntry, SubcategoryRow, ExpenseEntry } from '@/data/repository';
 import { onDataChange } from '@/db';
 import { toCents, formatCents } from '@/utils/money';
+import { useT } from '@/i18n';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 export default function RecordExpenseScreen() {
@@ -18,6 +19,7 @@ export default function RecordExpenseScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'RecordExpense'>>();
   const presetItemId = route.params?.itemId;
   const { activeMonth } = useActiveMonth();
+  const t = useT();
 
   const [subs, setSubs] = useState<SubcategoryRow[]>([]);
   const [chosen, setChosen] = useState<SubcategoryRow | null>(null);
@@ -45,21 +47,21 @@ export default function RecordExpenseScreen() {
   }, [chosen]);
 
   const onDelete = (entry: ExpenseEntry) => {
-    Alert.alert('Delete payment', `Remove the ${formatCents(entry.amountCents)} payment? It will be subtracted back out.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteExpenseEntry(entry.id) },
+    Alert.alert(t('record.deleteTitle'), t('record.deleteBody', { amount: formatCents(entry.amountCents) }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: () => deleteExpenseEntry(entry.id) },
     ]);
   };
 
   const onSave = async () => {
-    if (!chosen) return Alert.alert('Select a sub-category first.');
+    if (!chosen) return Alert.alert(t('record.pickFirst'));
     const cents = toCents(amount);
-    if (cents <= 0) return Alert.alert('Enter the amount you paid.');
+    if (cents <= 0) return Alert.alert(t('record.enterAmount'));
     try {
       await recordExpense(chosen.id, cents, reason);
       nav.goBack();
     } catch (e) {
-      Alert.alert('Could not save', (e as Error).message);
+      Alert.alert(t('common.couldNotSave'), (e as Error).message);
     }
   };
 
@@ -75,34 +77,34 @@ export default function RecordExpenseScreen() {
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg }}>
       {/* Sub-category selector */}
       <Text style={{ color: colors.textMuted, fontSize: font.size.xs, fontWeight: '600', letterSpacing: font.tracking.caps, textTransform: 'uppercase', marginBottom: spacing.sm }}>
-        Sub-category
+        {t('record.subcategory')}
       </Text>
       <Pressable
-        onPress={() => (subs.length ? setPickerOpen(true) : Alert.alert('No sub-categories', 'Add one in Expense Category Management first.'))}
+        onPress={() => (subs.length ? setPickerOpen(true) : Alert.alert(t('record.noSubsTitle'), t('record.noSubsBody')))}
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 14, marginBottom: spacing.md }}
       >
-        <Text style={{ color: chosen ? colors.text : colors.textFaint, fontSize: font.size.md, fontWeight: '600' }}>{chosen ? chosen.name : 'Select…'}</Text>
+        <Text style={{ color: chosen ? colors.text : colors.textFaint, fontSize: font.size.md, fontWeight: '600' }}>{chosen ? chosen.name : t('record.select')}</Text>
         <ChevronDown size={18} color={colors.textMuted} strokeWidth={2} />
       </Pressable>
 
       {/* Auto main category (read-only) */}
       <Text style={{ color: colors.textMuted, fontSize: font.size.xs, fontWeight: '600', letterSpacing: font.tracking.caps, textTransform: 'uppercase', marginBottom: spacing.sm }}>
-        Main category
+        {t('record.mainCategory')}
       </Text>
       <View style={{ backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.hairline, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 14, marginBottom: spacing.lg }}>
         <Text style={{ color: chosen ? colors.textMuted : colors.textFaint, fontSize: font.size.md }}>{chosen ? chosen.categoryName : '—'}</Text>
       </View>
 
-      <Field label="I paid" value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" />
-      <Field label="Reason (optional)" value={reason} onChangeText={setReason} placeholder="e.g. groceries at Shoa" />
+      <Field label={t('record.iPaid')} value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" />
+      <Field label={t('record.reason')} value={reason} onChangeText={setReason} placeholder={t('record.reasonPlaceholder')} />
 
-      <Button title="Add expense" onPress={onSave} />
+      <Button title={t('record.addExpense')} onPress={onSave} />
 
       {/* Payment history for the chosen sub-category */}
       {chosen && entries.length > 0 && (
         <View style={{ marginTop: spacing.xl }}>
           <Text style={{ color: colors.textMuted, fontSize: font.size.xs, fontWeight: '700', letterSpacing: font.tracking.caps, textTransform: 'uppercase', marginBottom: spacing.sm }}>
-            {chosen.name} payments
+            {t('record.payments', { name: chosen.name })}
           </Text>
           {entries.map((e) => (
             <View key={e.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.hairline }}>
@@ -122,7 +124,7 @@ export default function RecordExpenseScreen() {
       )}
 
       {/* Sub-category picker sheet */}
-      <BottomSheet visible={pickerOpen} onClose={() => setPickerOpen(false)} title="Choose sub-category">
+      <BottomSheet visible={pickerOpen} onClose={() => setPickerOpen(false)} title={t('record.chooseSheet')}>
         {groups.map((g) => (
           <View key={g.categoryName}>
             <SheetGroupLabel label={g.categoryName} />

@@ -18,6 +18,7 @@ import { getTotalSaved } from '@/data/repository';
 import { onDataChange } from '@/db';
 import { formatCents } from '@/utils/money';
 import { formatMonthLabel } from '@/utils/date';
+import { useT } from '@/i18n';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 type Tab = 'analytics' | 'history';
@@ -26,6 +27,7 @@ export default function InsightsScreen() {
   const insets = useSafeAreaInsets();
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { activeMonth } = useActiveMonth();
+  const t = useT();
   const { snapshot } = useMonth(activeMonth);
   const { snapshots } = useAllMonthSnapshots();
   const { rolloverTotalCents } = computeSavingsRollover(snapshots);
@@ -45,7 +47,7 @@ export default function InsightsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingTop: insets.top + spacing.lg, paddingBottom: layout.tabBarSpace }}>
-        <ScreenTitle title="Insights" />
+        <ScreenTitle title={t('insights.title')} />
 
         {/* Total Savings */}
         <Card style={{ marginBottom: spacing.md }}>
@@ -53,10 +55,10 @@ export default function InsightsScreen() {
             <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: colors.positiveSoft, alignItems: 'center', justifyContent: 'center' }}>
               <PiggyBank size={19} color={colors.positive} strokeWidth={2} />
             </View>
-            <Text style={{ color: colors.textMuted, fontSize: font.size.xs, letterSpacing: font.tracking.caps, fontWeight: '700' }}>TOTAL SAVINGS</Text>
+            <Text style={{ color: colors.textMuted, fontSize: font.size.xs, letterSpacing: font.tracking.caps, fontWeight: '700' }}>{t('insights.totalSavings')}</Text>
           </View>
           <Text style={{ color: colors.text, fontSize: font.size.xxl, fontWeight: '800', letterSpacing: font.tracking.tight }}>{formatCents(totalSavingsCents)}</Text>
-          <Text style={{ color: colors.textFaint, fontSize: font.size.xs, marginTop: 2 }}>Confirmed savings across all periods</Text>
+          <Text style={{ color: colors.textFaint, fontSize: font.size.xs, marginTop: 2 }}>{t('insights.confirmedSavings')}</Text>
         </Card>
 
         {/* Rollover */}
@@ -66,7 +68,7 @@ export default function InsightsScreen() {
               <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' }}>
                 <RefreshCw size={18} color={colors.primary} strokeWidth={2} />
               </View>
-              <Text style={{ color: colors.textMuted, fontSize: font.size.xs, letterSpacing: font.tracking.caps, fontWeight: '700' }}>ROLLOVER</Text>
+              <Text style={{ color: colors.textMuted, fontSize: font.size.xs, letterSpacing: font.tracking.caps, fontWeight: '700' }}>{t('insights.rollover')}</Text>
               <View style={{ flex: 1 }} />
               <ChevronRight size={20} color={colors.textFaint} />
             </View>
@@ -76,12 +78,12 @@ export default function InsightsScreen() {
 
         {/* Segmented tabs */}
         <View style={{ flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: radius.pill, padding: 4, marginBottom: spacing.lg }}>
-          {(['analytics', 'history'] as Tab[]).map((t) => {
-            const active = tab === t;
+          {(['analytics', 'history'] as Tab[]).map((tName) => {
+            const active = tab === tName;
             return (
-              <Pressable key={t} onPress={() => setTab(t)} style={{ flex: 1, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: active ? colors.bg : 'transparent', alignItems: 'center' }}>
+              <Pressable key={tName} onPress={() => setTab(tName)} style={{ flex: 1, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: active ? colors.bg : 'transparent', alignItems: 'center' }}>
                 <Text style={{ color: active ? colors.text : colors.textMuted, fontWeight: active ? '700' : '500', fontSize: font.size.sm }}>
-                  {t === 'analytics' ? 'Analytics' : 'History'}
+                  {tName === 'analytics' ? t('insights.analytics') : t('insights.history')}
                 </Text>
               </Pressable>
             );
@@ -92,26 +94,26 @@ export default function InsightsScreen() {
           snapshot ? <AnalyticsDashboard snapshot={snapshot} snapshots={snapshots} /> : null
         ) : (
           <View>
-            {months.length === 0 && <Text style={{ color: colors.textFaint }}>No months yet.</Text>}
+            {months.length === 0 && <Text style={{ color: colors.textFaint }}>{t('insights.noMonths')}</Text>}
             {months.map((m) => {
-              const t = computeTotals(m);
+              const mt = computeTotals(m);
               return (
                 <Pressable key={m.monthYear} onPress={() => nav.navigate('MonthDetail', { monthYear: m.monthYear })}>
                   <Card style={{ marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center' }}>
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>{formatMonthLabel(m.monthYear)}</Text>
                       <Text style={{ color: colors.textFaint, fontSize: font.size.xs }}>
-                        In {formatCents(t.totalIncomeCents)} · Spent {formatCents(t.totalActualCents)}
+                        {t('insights.in', { in: formatCents(mt.totalIncomeCents), spent: formatCents(mt.totalActualCents) })}
                       </Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
                         <RefreshCw size={11} color={colors.primary} strokeWidth={2.25} />
                         <Text style={{ color: colors.primary, fontSize: font.size.xs, fontWeight: '600' }}>
-                          Rollover {formatCents(rollMap[m.monthYear] ?? 0)}
+                          {t('insights.rolloverLabel', { amount: formatCents(rollMap[m.monthYear] ?? 0) })}
                         </Text>
                       </View>
                     </View>
-                    <Text style={{ color: t.actualNetSavedCents >= 0 ? colors.positive : colors.negative, fontSize: font.size.md, fontWeight: '700', marginRight: 4 }}>
-                      {formatCents(t.actualNetSavedCents)}
+                    <Text style={{ color: mt.actualNetSavedCents >= 0 ? colors.positive : colors.negative, fontSize: font.size.md, fontWeight: '700', marginRight: 4 }}>
+                      {formatCents(mt.actualNetSavedCents)}
                     </Text>
                     <ChevronRight size={18} color={colors.textFaint} />
                   </Card>

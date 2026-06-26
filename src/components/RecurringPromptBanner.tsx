@@ -10,6 +10,7 @@ import { onDataChange } from '@/db';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { listUnpaidRecurring, recordExpense, UnpaidRecurringDto } from '@/data/repository';
 import { formatCents } from '@/utils/money';
+import { useT } from '@/i18n';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 // Recurring fixed bills (rent, internet, tithe) that haven't been paid yet this
@@ -18,6 +19,7 @@ import type { RootStackParamList } from '@/navigation/RootNavigator';
 export default function RecurringPromptBanner() {
   const { activeMonth } = useActiveMonth();
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const t = useT();
   const [pending, setPending] = useState<UnpaidRecurringDto[]>([]);
 
   const load = useCallback(() => {
@@ -38,10 +40,10 @@ export default function RecurringPromptBanner() {
     <View style={{ marginHorizontal: spacing.lg, marginBottom: spacing.lg, backgroundColor: colors.primaryFaint, borderWidth: 1, borderColor: colors.primarySoft, borderRadius: radius.lg, padding: spacing.lg }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <Repeat size={18} color={colors.primary} strokeWidth={2} />
-        <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>Recurring bills to confirm</Text>
+        <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>{t('recurring.title')}</Text>
       </View>
       <Text style={{ color: colors.textMuted, fontSize: font.size.sm, marginBottom: spacing.md }}>
-        Did you pay these this period? Confirm to log them — or tap the amount to log a different figure.
+        {t('recurring.body')}
       </Text>
 
       {pending.map((item) => (
@@ -55,10 +57,10 @@ export default function RecurringPromptBanner() {
               onPress={() => nav.navigate('RecordExpense', { itemId: item.id })}
               style={{ color: colors.textMuted, fontSize: font.size.xs }}
             >
-              {item.categoryName} · {formatCents(item.budgetCapCents)} — tap to change
+              {item.categoryName} · {formatCents(item.budgetCapCents)} — {t('recurring.tapToChange')}
             </Text>
           </View>
-          <Button title="Confirm paid" onPress={() => confirm(item)} />
+          <Button title={t('recurring.confirmPaid')} onPress={() => confirm(item)} />
         </View>
       ))}
     </View>

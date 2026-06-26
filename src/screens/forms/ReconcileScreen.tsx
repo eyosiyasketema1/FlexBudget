@@ -12,6 +12,7 @@ import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useMonth } from '@/data/useMonth';
 import { listSubcategories, recordExpense, SubcategoryRow } from '@/data/repository';
 import { toCents, formatCents } from '@/utils/money';
+import { useT } from '@/i18n';
 
 // Reconciliation: instead of logging every small expense, you periodically tell
 // the app how much money you actually have on hand. The app knows what you
@@ -21,6 +22,7 @@ export default function ReconcileScreen() {
   const nav = useNavigation();
   const { activeMonth } = useActiveMonth();
   const { totals } = useMonth(activeMonth);
+  const t = useT();
 
   const income = totals?.totalIncomeCents ?? 0;
   const spent = totals?.totalActualCents ?? 0;
@@ -48,13 +50,13 @@ export default function ReconcileScreen() {
 
   const onLog = async () => {
     if (gap === null || gap <= 0) return;
-    if (!chosen) return Alert.alert('Pick a category', 'Choose where the untracked spending belongs.');
+    if (!chosen) return Alert.alert(t('reconcile.pickCat'), t('reconcile.pickCatBody'));
     try {
       await recordExpense(chosen.id, gap, 'Reconciliation — untracked spending');
-      Alert.alert('Caught up', `${formatCents(gap)} logged to ${chosen.name}. Your records now match your balance.`);
+      Alert.alert(t('reconcile.caughtTitle'), t('reconcile.caughtBody', { amount: formatCents(gap), name: chosen.name }));
       nav.goBack();
     } catch (e) {
-      Alert.alert('Could not save', (e as Error).message);
+      Alert.alert(t('common.couldNotSave'), (e as Error).message);
     }
   };
 
@@ -62,21 +64,21 @@ export default function ReconcileScreen() {
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.sm }}>
         <Scale size={20} color={colors.text} strokeWidth={1.9} />
-        <Text style={{ color: colors.text, fontSize: font.size.xl, fontWeight: '700' }}>Reconcile balance</Text>
+        <Text style={{ color: colors.text, fontSize: font.size.xl, fontWeight: '700' }}>{t('reconcile.title')}</Text>
       </View>
       <Text style={{ color: colors.textMuted, fontSize: font.size.sm, marginBottom: spacing.lg }}>
-        Don't log every coffee. Just tell the app how much money you actually have right now — it works out what you forgot to record.
+        {t('reconcile.intro')}
       </Text>
 
       <Card style={{ marginBottom: spacing.lg }}>
-        <Row label="Income this period" value={formatCents(income)} />
-        <Row label="Logged as spent" value={`− ${formatCents(spent)}`} />
+        <Row label={t('reconcile.incomeThisPeriod')} value={formatCents(income)} />
+        <Row label={t('reconcile.loggedSpent')} value={`− ${formatCents(spent)}`} />
         <View style={{ height: 1, backgroundColor: colors.hairline, marginVertical: spacing.sm }} />
-        <Row label="So you should have" value={formatCents(expected)} bold />
+        <Row label={t('reconcile.shouldHave')} value={formatCents(expected)} bold />
       </Card>
 
       <Field
-        label="How much do you actually have? (wallet + account)"
+        label={t('reconcile.onHand')}
         value={onHand}
         onChangeText={setOnHand}
         placeholder="0.00"
@@ -87,45 +89,45 @@ export default function ReconcileScreen() {
         <>
           <Card style={{ marginBottom: spacing.lg, backgroundColor: colors.primaryFaint, borderColor: colors.primarySoft, borderWidth: 1 }}>
             <Text style={{ color: colors.text, fontWeight: '700', fontSize: font.size.md, marginBottom: 4 }}>
-              {formatCents(gap)} spent but not logged
+              {t('reconcile.gapTitle', { amount: formatCents(gap) })}
             </Text>
             <Text style={{ color: colors.textMuted, fontSize: font.size.sm }}>
-              You have {formatCents(gap)} less than expected. Assign it to a category to catch up.
+              {t('reconcile.gapBody', { amount: formatCents(gap) })}
             </Text>
           </Card>
 
           <Text style={{ color: colors.textMuted, fontSize: font.size.xs, fontWeight: '600', letterSpacing: font.tracking.caps, textTransform: 'uppercase', marginBottom: spacing.sm }}>
-            Assign to
+            {t('reconcile.assignTo')}
           </Text>
           <Pressable
-            onPress={() => (subs.length ? setPickerOpen(true) : Alert.alert('No sub-categories', 'Add one in Expense Category Management first.'))}
+            onPress={() => (subs.length ? setPickerOpen(true) : Alert.alert(t('record.noSubsTitle'), t('record.noSubsBody')))}
             style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 14, marginBottom: spacing.lg }}
           >
-            <Text style={{ color: chosen ? colors.text : colors.textFaint, fontSize: font.size.md, fontWeight: '600' }}>{chosen ? `${chosen.name} · ${chosen.categoryName}` : 'Select…'}</Text>
+            <Text style={{ color: chosen ? colors.text : colors.textFaint, fontSize: font.size.md, fontWeight: '600' }}>{chosen ? `${chosen.name} · ${chosen.categoryName}` : t('record.select')}</Text>
             <ChevronDown size={18} color={colors.textMuted} strokeWidth={2} />
           </Pressable>
 
-          <Button title={`Log ${formatCents(gap)} as spent`} onPress={onLog} />
+          <Button title={t('reconcile.logAmount', { amount: formatCents(gap) })} onPress={onLog} />
         </>
       )}
 
       {gap !== null && gap === 0 && (
         <Card style={{ marginBottom: spacing.lg }}>
-          <Text style={{ color: colors.text, fontWeight: '700' }}>All caught up</Text>
-          <Text style={{ color: colors.textMuted, fontSize: font.size.sm }}>Your balance matches your records exactly.</Text>
+          <Text style={{ color: colors.text, fontWeight: '700' }}>{t('reconcile.caughtUp')}</Text>
+          <Text style={{ color: colors.textMuted, fontSize: font.size.sm }}>{t('reconcile.matches')}</Text>
         </Card>
       )}
 
       {gap !== null && gap < 0 && (
         <Card style={{ marginBottom: spacing.lg }}>
-          <Text style={{ color: colors.text, fontWeight: '700' }}>{formatCents(-gap)} more than expected</Text>
+          <Text style={{ color: colors.text, fontWeight: '700' }}>{t('reconcile.moreTitle', { amount: formatCents(-gap) })}</Text>
           <Text style={{ color: colors.textMuted, fontSize: font.size.sm }}>
-            You have more on hand than your records predict — maybe extra income, or a logged expense you didn't actually pay. Nothing to record here; adjust your salary or a payment if needed.
+            {t('reconcile.moreBody')}
           </Text>
         </Card>
       )}
 
-      <BottomSheet visible={pickerOpen} onClose={() => setPickerOpen(false)} title="Assign untracked spending to">
+      <BottomSheet visible={pickerOpen} onClose={() => setPickerOpen(false)} title={t('reconcile.assignSheet')}>
         {groups.map((g) => (
           <View key={g.categoryName}>
             <SheetGroupLabel label={g.categoryName} />

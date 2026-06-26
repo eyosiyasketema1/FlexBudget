@@ -10,6 +10,7 @@ import { colors, spacing, font, radius, layout } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useMonth } from '@/data/useMonth';
 import { formatCents } from '@/utils/money';
+import { useT } from '@/i18n';
 import { BUCKET_ORDER } from '@/db/template';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import type { CategoryRollup, ItemVariance } from '@/calc/types';
@@ -46,6 +47,7 @@ function ItemRow({ item, onPress }: { item: ItemVariance; onPress: () => void })
 export default function TimelineScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { activeMonth } = useActiveMonth();
+  const t = useT();
   const { snapshot, totals, rollups } = useMonth(activeMonth);
   const [hidden, setHidden] = useState(false);
 
@@ -65,7 +67,7 @@ export default function TimelineScreen() {
         <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.xl }}>
           <Pressable onPress={() => nav.navigate('IncomeForm', salary ? { incomeId: salary.id } : undefined)} accessibilityRole="button" accessibilityLabel="Edit salary">
             <AccountCard
-              title={salary?.label ?? 'Salary Account'}
+              title={salary?.label ?? t('home.salaryAccount')}
               amountCents={incomeTotal}
               spentCents={spent}
               budgetCents={budget}
@@ -78,7 +80,7 @@ export default function TimelineScreen() {
         {/* Expenses grouped by bucket */}
         <View style={{ paddingHorizontal: spacing.lg }}>
         {buckets.length === 0 && (
-          <Text style={{ color: colors.textFaint, marginTop: spacing.sm }}>No expenses set up for this month.</Text>
+          <Text style={{ color: colors.textFaint, marginTop: spacing.sm }}>{t('home.noExpenses')}</Text>
         )}
 
         {buckets.map((cat) => {
@@ -93,7 +95,7 @@ export default function TimelineScreen() {
               </View>
               <Card>
                 {cat.items.length === 0 ? (
-                  <Text style={{ color: colors.textFaint, fontSize: font.size.sm }}>No items.</Text>
+                  <Text style={{ color: colors.textFaint, fontSize: font.size.sm }}>{t('home.noItems')}</Text>
                 ) : (
                   cat.items.map((item, idx) => (
                     <View key={item.id}>
@@ -117,12 +119,12 @@ export default function TimelineScreen() {
             <Card>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View style={{ flex: 1, paddingRight: spacing.md }}>
-                  <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>Reconcile balance</Text>
+                  <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>{t('home.reconcile')}</Text>
                   <Text style={{ color: colors.textMuted, fontSize: font.size.xs }}>
-                    Forgot to log some spending? Enter what you actually have and catch the rest.
+                    {t('home.reconcile.sub')}
                   </Text>
                 </View>
-                <Text style={{ color: colors.primary, fontWeight: '700' }}>Check</Text>
+                <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('home.check')}</Text>
               </View>
             </Card>
           </Pressable>

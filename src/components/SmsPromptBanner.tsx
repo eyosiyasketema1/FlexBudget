@@ -9,12 +9,14 @@ import { onDataChange } from '@/db';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { listPendingSms, dismissPendingSms, confirmPendingSms, listSubcategories, PendingSms, SubcategoryRow } from '@/data/repository';
 import { formatCents } from '@/utils/money';
+import { useT } from '@/i18n';
 
 // Surfaces transactions captured from incoming SMS (telebirr/CBE). Each one
 // waits for the user: pick a category and confirm to log it, or dismiss it.
 // Nothing is recorded automatically.
 export default function SmsPromptBanner() {
   const { activeMonth } = useActiveMonth();
+  const t = useT();
   const [pending, setPending] = useState<PendingSms[]>([]);
   const [subs, setSubs] = useState<SubcategoryRow[]>([]);
   const [pickerFor, setPickerFor] = useState<PendingSms | null>(null);
@@ -47,10 +49,10 @@ export default function SmsPromptBanner() {
     <View style={{ marginHorizontal: spacing.lg, marginBottom: spacing.lg, backgroundColor: colors.primaryFaint, borderWidth: 1, borderColor: colors.primarySoft, borderRadius: radius.lg, padding: spacing.lg }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <MessageSquareText size={18} color={colors.primary} strokeWidth={2} />
-        <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>Transactions from SMS</Text>
+        <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>{t('sms.title')}</Text>
       </View>
       <Text style={{ color: colors.textMuted, fontSize: font.size.sm, marginBottom: spacing.md }}>
-        We spotted these in your messages. Confirm to log them, or dismiss.
+        {t('sms.body')}
       </Text>
 
       {pending.map((sms) => (
@@ -62,15 +64,15 @@ export default function SmsPromptBanner() {
               onPress={() => (subs.length ? setPickerFor(sms) : Alert.alert('No sub-categories', 'Add one in Expense Category Management first.'))}
               style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 10 }}
             >
-              <Text style={{ color: colors.text, fontWeight: '600' }}>Log to…</Text>
+              <Text style={{ color: colors.text, fontWeight: '600' }}>{t('sms.logTo')}</Text>
               <ChevronDown size={16} color={colors.textMuted} strokeWidth={2} />
             </Pressable>
-            <Button title="Dismiss" variant="ghost" onPress={() => dismissPendingSms(sms.id)} />
+            <Button title={t('common.dismiss')} variant="ghost" onPress={() => dismissPendingSms(sms.id)} />
           </View>
         </View>
       ))}
 
-      <BottomSheet visible={!!pickerFor} onClose={() => setPickerFor(null)} title={pickerFor ? `Log ${formatCents(pickerFor.amountCents)} to` : 'Log to'}>
+      <BottomSheet visible={!!pickerFor} onClose={() => setPickerFor(null)} title={pickerFor ? t('sms.assignTitle', { amount: formatCents(pickerFor.amountCents) }) : t('sms.logTo')}>
         {groups.map((g) => (
           <View key={g.categoryName}>
             <SheetGroupLabel label={g.categoryName} />

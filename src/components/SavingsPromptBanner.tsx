@@ -9,11 +9,13 @@ import { onDataChange } from '@/db';
 import { endedUnconfirmedPeriods, setMonthSaved, EndedPeriod } from '@/data/repository';
 import { formatCents, toCents } from '@/utils/money';
 import { formatMonthLabel } from '@/utils/date';
+import { useT } from '@/i18n';
 
 // Shows when a budget period has ended but its savings hasn't been confirmed.
 // Asks "did you save the planned amount?" — Yes records the plan, No lets you
 // enter the actual amount. Total Savings only counts confirmed amounts.
 export default function SavingsPromptBanner() {
+  const t = useT();
   const [pending, setPending] = useState<EndedPeriod[]>([]);
   const [amountMode, setAmountMode] = useState(false);
   const [amount, setAmount] = useState('');
@@ -37,23 +39,23 @@ export default function SavingsPromptBanner() {
     <View style={{ marginHorizontal: spacing.lg, marginBottom: spacing.lg, backgroundColor: colors.primaryFaint, borderWidth: 1, borderColor: colors.primarySoft, borderRadius: radius.lg, padding: spacing.lg }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <PiggyBank size={18} color={colors.primary} strokeWidth={2} />
-        <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>Confirm your savings</Text>
+        <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>{t('savings.title')}</Text>
       </View>
       <Text style={{ color: colors.textMuted, fontSize: font.size.sm, marginBottom: spacing.md }}>
-        {formatMonthLabel(p.monthYear)} ended. Did you save your planned {formatCents(p.plannedCents)}?
+        {t('savings.ask', { month: formatMonthLabel(p.monthYear), amount: formatCents(p.plannedCents) })}
       </Text>
 
       {!amountMode ? (
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          <Button title={`Yes — ${formatCents(p.plannedCents)}`} onPress={() => confirm(p.plannedCents)} style={{ flex: 1 }} />
-          <Button title="No / other" variant="secondary" onPress={() => { setAmount(''); setAmountMode(true); }} style={{ flex: 1 }} />
+          <Button title={t('savings.yes', { amount: formatCents(p.plannedCents) })} onPress={() => confirm(p.plannedCents)} style={{ flex: 1 }} />
+          <Button title={t('savings.no')} variant="secondary" onPress={() => { setAmount(''); setAmountMode(true); }} style={{ flex: 1 }} />
         </View>
       ) : (
         <View>
-          <Field label="How much did you actually save?" value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" />
+          <Field label={t('savings.howMuch')} value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" />
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <Button title="Save" onPress={() => confirm(toCents(amount))} style={{ flex: 1 }} />
-            <Button title="Back" variant="ghost" onPress={() => setAmountMode(false)} style={{ flex: 1 }} />
+            <Button title={t('common.save')} onPress={() => confirm(toCents(amount))} style={{ flex: 1 }} />
+            <Button title={t('common.back')} variant="ghost" onPress={() => setAmountMode(false)} style={{ flex: 1 }} />
           </View>
         </View>
       )}

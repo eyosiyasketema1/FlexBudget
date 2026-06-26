@@ -11,6 +11,7 @@ import { scheduleReminders } from '@/utils/notifications';
 import { startSmsCapture } from '@/utils/smsReader';
 import { setCycleStartDayCache } from '@/utils/date';
 import { ActiveMonthProvider } from '@/state/ActiveMonthContext';
+import { LanguageProvider, getStoredLang, Lang } from '@/i18n';
 import RootNavigator from '@/navigation/RootNavigator';
 import { colors } from '@/theme/theme';
 import { FONT_FAMILY, fontAssets } from '@/theme/fonts';
@@ -38,10 +39,12 @@ function applyGeneralSans() {
 export default function App() {
   const [ready, setReady] = useState(false);
   const [initialMonth, setInitialMonth] = useState<string | undefined>(undefined);
+  const [initialLang, setInitialLang] = useState<Lang>('en');
 
   useEffect(() => {
     (async () => {
       await initDatabase();
+      setInitialLang(await getStoredLang());
       // Load the pay-cycle start day, then resolve the current period safely.
       setCycleStartDayCache(await getCycleStartDayStored());
       const resolved = await ensureCurrentMonth();
@@ -69,10 +72,12 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <ActiveMonthProvider initialMonth={initialMonth}>
-        <StatusBar style="dark" />
-        <RootNavigator />
-      </ActiveMonthProvider>
+      <LanguageProvider initialLang={initialLang}>
+        <ActiveMonthProvider initialMonth={initialMonth}>
+          <StatusBar style="dark" />
+          <RootNavigator />
+        </ActiveMonthProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

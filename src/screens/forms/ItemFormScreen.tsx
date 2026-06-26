@@ -10,6 +10,7 @@ import { colors, spacing, font, radius } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { addItem, updateItem, archiveItem, getItem, listActiveCategories, moveItemToCategory } from '@/data/repository';
 import { toCents, formatCents } from '@/utils/money';
+import { useT } from '@/i18n';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 export default function ItemFormScreen() {
@@ -18,6 +19,7 @@ export default function ItemFormScreen() {
   const categoryId = route.params?.categoryId;
   const itemId = route.params?.itemId;
   const { activeMonth } = useActiveMonth();
+  const t = useT();
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const [name, setName] = useState('');
@@ -53,18 +55,18 @@ export default function ItemFormScreen() {
     });
   }, [itemId]);
 
-  const chosenName = categories.find((c) => c.id === chosenCat)?.name ?? 'Select…';
+  const chosenName = categories.find((c) => c.id === chosenCat)?.name ?? t('item.select');
 
   const openPicker = () => {
     if (categories.length === 0) {
-      return Alert.alert('No main categories', 'Create a main category first, then add sub-categories to it.');
+      return Alert.alert(t('item.noMainTitle'), t('item.noMainBody'));
     }
     setPickerOpen(true);
   };
 
   const onSave = async () => {
-    if (!name.trim()) return Alert.alert('Name the sub-category first.');
-    if (!chosenCat) return Alert.alert('Pick a main category', 'Choose which main category this belongs to.');
+    if (!name.trim()) return Alert.alert(t('item.nameFirst'));
+    if (!chosenCat) return Alert.alert(t('item.pickMain'), t('item.pickMainBody'));
     const data = {
       name: name.trim(),
       budgetCapCents: toCents(cap),
@@ -81,15 +83,15 @@ export default function ItemFormScreen() {
       }
       nav.goBack();
     } catch (e) {
-      Alert.alert('Could not save', (e as Error).message);
+      Alert.alert(t('common.couldNotSave'), (e as Error).message);
     }
   };
 
   const onDelete = () => {
     if (!itemId) return;
-    Alert.alert('Remove sub-category', 'Archive this sub-category? History stays intact.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Archive', style: 'destructive', onPress: async () => { await archiveItem(itemId); nav.goBack(); } },
+    Alert.alert(t('item.removeTitle'), t('item.removeBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.archive'), style: 'destructive', onPress: async () => { await archiveItem(itemId); nav.goBack(); } },
     ]);
   };
 
@@ -97,7 +99,7 @@ export default function ItemFormScreen() {
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg }}>
       {/* Main category selector */}
       <Text style={{ color: colors.textMuted, fontSize: font.size.xs, fontWeight: '600', letterSpacing: font.tracking.caps, textTransform: 'uppercase', marginBottom: spacing.sm }}>
-        Main category
+        {t('item.mainCategory')}
       </Text>
       <Pressable
         onPress={openPicker}
@@ -113,8 +115,8 @@ export default function ItemFormScreen() {
         <ChevronDown size={18} color={colors.textMuted} strokeWidth={2} />
       </Pressable>
 
-      <Field label="Sub-category name" value={name} onChangeText={setName} placeholder="Rent" />
-      <Field label="Monthly budget" value={cap} onChangeText={setCap} placeholder="0.00" keyboardType="decimal-pad" />
+      <Field label={t('item.name')} value={name} onChangeText={setName} placeholder="Rent" />
+      <Field label={t('item.budget')} value={cap} onChangeText={setCap} placeholder="0.00" keyboardType="decimal-pad" />
 
       <View
         style={{
@@ -124,10 +126,10 @@ export default function ItemFormScreen() {
         }}
       >
         <View style={{ flex: 1, paddingRight: spacing.md }}>
-          <Text style={{ color: colors.text, fontWeight: '600' }}>Smart rollover</Text>
+          <Text style={{ color: colors.text, fontWeight: '600' }}>{t('item.rollover')}</Text>
           <Text style={{ color: colors.textMuted, fontSize: font.size.xs }}>
-            Carry unspent (or overspend) into next month when you copy forward.
-            {itemId && carry !== 0 ? `  Carried in this month: ${formatCents(carry)}.` : ''}
+            {t('item.rollover.sub')}
+            {itemId && carry !== 0 ? `  ${formatCents(carry)}.` : ''}
           </Text>
         </View>
         <Switch value={rollover} onValueChange={setRollover} trackColor={{ true: colors.primary, false: colors.surfaceAlt }} />
@@ -141,19 +143,19 @@ export default function ItemFormScreen() {
         }}
       >
         <View style={{ flex: 1, paddingRight: spacing.md }}>
-          <Text style={{ color: colors.text, fontWeight: '600' }}>Recurring fixed bill</Text>
+          <Text style={{ color: colors.text, fontWeight: '600' }}>{t('item.recurring')}</Text>
           <Text style={{ color: colors.textMuted, fontSize: font.size.xs }}>
-            A predictable bill (rent, internet, tithe). Each period the Home screen reminds you to confirm you paid it — nothing posts until you tap confirm.
+            {t('item.recurring.sub')}
           </Text>
         </View>
         <Switch value={recurring} onValueChange={setRecurring} trackColor={{ true: colors.primary, false: colors.surfaceAlt }} />
       </View>
 
-      <Button title={itemId ? 'Save' : 'Add sub-category'} onPress={onSave} />
-      {itemId && <Button title="Archive" onPress={onDelete} variant="danger" style={{ marginTop: spacing.sm }} />}
+      <Button title={itemId ? t('common.save') : t('item.addSub')} onPress={onSave} />
+      {itemId && <Button title={t('common.archive')} onPress={onDelete} variant="danger" style={{ marginTop: spacing.sm }} />}
 
       {/* Bottom-sheet category picker */}
-      <BottomSheet visible={pickerOpen} onClose={() => setPickerOpen(false)} title={itemId ? 'Move to main category' : 'Main category'}>
+      <BottomSheet visible={pickerOpen} onClose={() => setPickerOpen(false)} title={itemId ? t('item.moveTo') : t('item.mainCategory')}>
         {categories.map((c) => (
           <SheetOption key={c.id} label={c.name} selected={c.id === chosenCat} onPress={() => { setChosenCat(c.id); setPickerOpen(false); }} />
         ))}
