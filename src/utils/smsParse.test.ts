@@ -55,4 +55,11 @@ describe('parseTransactionSms', () => {
   it('returns null when there is a keyword but no amount', () => {
     expect(parseTransactionSms('Your account was debited. Contact us for details.')).toBeNull();
   });
+
+  it('does not treat a data-bundle size as money', () => {
+    // currency token sitting next to a data size must not be captured as ETB
+    expect(parseTransactionSms('Your account is debited Br 1024 MB data bonus')).toBeNull();
+    expect(parseTransactionSms('You have paid for 1.5 GB. Br 99 deducted')).toEqual({ amountCents: 9900, kind: 'debit' });
+    expect(parseTransactionSms('You have bought 100 MB and 50 min for ETB 27.00')).toEqual({ amountCents: 2700, kind: 'debit' });
+  });
 });

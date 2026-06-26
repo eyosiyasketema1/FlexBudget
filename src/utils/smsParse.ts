@@ -51,6 +51,9 @@ export function parseTransactionSms(body: string): ParsedSms | null {
   while ((m = CURRENCY.exec(text)) !== null) {
     const numeric = m[1] ?? m[2];
     if (!numeric) continue;
+    // Skip data-bundle figures (e.g. "Br 1024 MB", "100 GB") — those are not money.
+    const after = text.slice(m.index + m[0].length, m.index + m[0].length + 6);
+    if (/^\s*(?:mb|gb|kb|tb|mbps|gbps|byte|bytes|min|mins|minute|sec)\b/i.test(after)) continue;
     found.push({ cents: toCents(numeric), index: m.index });
   }
   if (found.length === 0) return null;
