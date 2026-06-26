@@ -11,9 +11,11 @@ import { useAllMonthSnapshots } from '@/data/useHistory';
 import { rolloverByMonth } from '@/calc/analytics';
 import { formatCents } from '@/utils/money';
 import { formatMonthLabel } from '@/utils/date';
+import { useT } from '@/i18n';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 export default function MonthDetailScreen() {
+  const t = useT();
   const route = useRoute<RouteProp<RootStackParamList, 'MonthDetail'>>();
   const monthYear = route.params.monthYear;
   const { snapshot } = useMonth(monthYear);
@@ -31,7 +33,7 @@ export default function MonthDetailScreen() {
           <RefreshCw size={18} color={colors.primary} strokeWidth={2} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.textMuted, fontSize: font.size.xs, letterSpacing: font.tracking.caps, fontWeight: '700' }}>ROLLOVER FROM THIS MONTH</Text>
+          <Text style={{ color: colors.textMuted, fontSize: font.size.xs, letterSpacing: font.tracking.caps, fontWeight: '700' }}>{t('monthDetail.rolloverFrom')}</Text>
           <Text style={{ color: roll >= 0 ? colors.text : colors.negative, fontSize: font.size.lg, fontWeight: '800' }}>{formatCents(roll)}</Text>
         </View>
       </Card>

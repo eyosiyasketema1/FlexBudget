@@ -13,6 +13,7 @@ import { useMonth } from '@/data/useMonth';
 import { computeBudgetAllocation } from '@/calc/analytics';
 import { rebalanceSavings } from '@/data/repository';
 import { formatCents } from '@/utils/money';
+import { useT } from '@/i18n';
 import { BUCKET_ORDER } from '@/db/template';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
@@ -36,6 +37,7 @@ function AppraisalBar({ percent, target, within }: { percent: number; target: nu
 export default function BudgetScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { activeMonth } = useActiveMonth();
+  const t = useT();
   const { snapshot, rollups, isLocked } = useMonth(activeMonth);
 
   // Keep the plan zero-based: Savings absorbs the difference so total = income.
@@ -51,7 +53,7 @@ export default function BudgetScreen() {
   const income = alloc?.incomeCents ?? 0;
   const unalloc = alloc?.unallocatedCents ?? 0;
   const statusColor = unalloc === 0 ? colors.positive : unalloc > 0 ? colors.warning : colors.negative;
-  const statusText = unalloc === 0 ? 'Balanced' : unalloc > 0 ? `${formatCents(unalloc)} unallocated` : `${formatCents(-unalloc)} over income`;
+  const statusText = unalloc === 0 ? t('budget.balanced') : unalloc > 0 ? t('budget.unallocated', { amount: formatCents(unalloc) }) : t('budget.overIncome', { amount: formatCents(-unalloc) });
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -59,7 +61,7 @@ export default function BudgetScreen() {
         {alloc && (
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: spacing.lg }}>
             <View>
-              <Text style={{ color: colors.textMuted, fontSize: font.size.xs, letterSpacing: font.tracking.caps, fontWeight: '700' }}>TOTAL BUDGETED</Text>
+              <Text style={{ color: colors.textMuted, fontSize: font.size.xs, letterSpacing: font.tracking.caps, fontWeight: '700' }}>{t('budget.totalBudgeted')}</Text>
               <Text style={{ color: colors.text, fontSize: font.size.xl, fontWeight: '800', letterSpacing: font.tracking.tight }}>
                 {formatCents(totalBudgeted)} <Text style={{ color: colors.textFaint, fontSize: font.size.sm, fontWeight: '500' }}>/ {formatCents(income)}</Text>
               </Text>
@@ -69,11 +71,11 @@ export default function BudgetScreen() {
         )}
 
         <SectionHeader
-          title="Main categories"
-          action={!isLocked ? <IconButton icon={FolderPlus} label="Add main category" onPress={() => nav.navigate('CategoryForm')} /> : undefined}
+          title={t('budget.mainCategories')}
+          action={!isLocked ? <IconButton icon={FolderPlus} label={t('budget.addMain')} onPress={() => nav.navigate('CategoryForm')} /> : undefined}
         />
 
-        {buckets.length === 0 && <Text style={{ color: colors.textFaint }}>No categories yet.</Text>}
+        {buckets.length === 0 && <Text style={{ color: colors.textFaint }}>{t('budget.noCategories')}</Text>}
 
         {buckets.map((cat) => {
           const items = itemsByCat.get(cat.id) ?? [];
@@ -87,8 +89,8 @@ export default function BudgetScreen() {
                 {cat.targetPercent != null && (
                   <>
                     <Text style={{ color: cat.withinTarget ? colors.textMuted : colors.negative, fontSize: font.size.xs, marginTop: 2 }}>
-                      {cat.percentOfIncome.toFixed(0)}% of income · cap {cat.targetPercent}%
-                      {cat.withinTarget ? '' : cat.bucket === 'savings' ? '  ↓ under' : '  ↑ over'}
+                      {t('budget.ofIncomeCap', { pct: cat.percentOfIncome.toFixed(0), cap: cat.targetPercent })}
+                      {cat.withinTarget ? '' : cat.bucket === 'savings' ? `  ${t('budget.under')}` : `  ${t('budget.over')}`}
                     </Text>
                     <AppraisalBar percent={cat.percentOfIncome} target={cat.targetPercent} within={cat.withinTarget} />
                   </>
@@ -113,7 +115,7 @@ export default function BudgetScreen() {
               {!isLocked && (
                 <Pressable onPress={() => nav.navigate('ItemForm', { categoryId: cat.id })} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.xs }}>
                   <Plus size={15} color={colors.primary} strokeWidth={2.25} />
-                  <Text style={{ color: colors.primary, fontSize: font.size.sm, fontWeight: '600' }}>Add sub-category</Text>
+                  <Text style={{ color: colors.primary, fontSize: font.size.sm, fontWeight: '600' }}>{t('budget.addSub')}</Text>
                 </Pressable>
               )}
             </Card>
@@ -121,7 +123,7 @@ export default function BudgetScreen() {
         })}
 
         <Text style={{ color: colors.textFaint, fontSize: font.size.xs, marginTop: spacing.xs }}>
-          Sub-category budgets add up into each main category. The bar shows your allocation vs the 50/30/20 target (marker line).
+          {t('budget.footer')}
         </Text>
       </ScrollView>
     </View>

@@ -7,9 +7,11 @@ import { useAllMonthSnapshots } from '@/data/useHistory';
 import { computeSavingsRollover } from '@/calc/analytics';
 import { formatCents, formatSignedCents } from '@/utils/money';
 import { formatMonthLabel } from '@/utils/date';
+import { useT } from '@/i18n';
 import type { RolloverEntry } from '@/calc/analytics';
 
 export default function RolloverScreen() {
+  const t = useT();
   const { snapshots } = useAllMonthSnapshots();
   const { rolloverTotalCents, entries } = computeSavingsRollover(snapshots);
 
@@ -24,16 +26,16 @@ export default function RolloverScreen() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}>
       <Card style={{ marginBottom: spacing.lg }}>
-        <Text style={{ color: colors.textMuted, fontSize: font.size.xs, letterSpacing: font.tracking.caps, fontWeight: '700' }}>ROLLOVER POOL</Text>
+        <Text style={{ color: colors.textMuted, fontSize: font.size.xs, letterSpacing: font.tracking.caps, fontWeight: '700' }}>{t('rollover.pool')}</Text>
         <Text style={{ color: rolloverTotalCents >= 0 ? colors.text : colors.negative, fontSize: font.size.display, fontWeight: '800', letterSpacing: font.tracking.tight }}>
           {formatCents(rolloverTotalCents)}
         </Text>
-        <Text style={{ color: colors.textFaint, fontSize: font.size.sm }}>Leftover money carried from past months</Text>
+        <Text style={{ color: colors.textFaint, fontSize: font.size.sm }}>{t('rollover.poolSub')}</Text>
       </Card>
 
       {groups.length === 0 ? (
         <Text style={{ color: colors.textFaint, textAlign: 'center', marginTop: spacing.xl }}>
-          No rollover yet. As months end, any money left in your categories shows up here.
+          {t('rollover.emptyLong')}
         </Text>
       ) : (
         groups.map((g) => (

@@ -7,15 +7,16 @@ import Button from '@/components/Button';
 import { colors, spacing, font, radius } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { addCategory, updateCategory, archiveCategory, getCategory } from '@/data/repository';
+import { useT } from '@/i18n';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import type { Bucket } from '@/calc/types';
 
-const BUCKETS: { key: Bucket | null; label: string }[] = [
-  { key: 'needs', label: 'Needs' },
-  { key: 'wants', label: 'Wants' },
-  { key: 'church', label: 'Church' },
-  { key: 'savings', label: 'Savings' },
-  { key: null, label: 'None' },
+const BUCKETS: { key: Bucket | null; tkey: string }[] = [
+  { key: 'needs', tkey: 'bucket.needs' },
+  { key: 'wants', tkey: 'bucket.wants' },
+  { key: 'church', tkey: 'bucket.church' },
+  { key: 'savings', tkey: 'bucket.savings' },
+  { key: null, tkey: 'bucket.none' },
 ];
 
 export default function CategoryFormScreen() {
@@ -23,6 +24,7 @@ export default function CategoryFormScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'CategoryForm'>>();
   const categoryId = route.params?.categoryId;
   const { activeMonth } = useActiveMonth();
+  const t = useT();
 
   const [name, setName] = useState('');
   const [cap, setCap] = useState('');
@@ -39,10 +41,10 @@ export default function CategoryFormScreen() {
   }, [categoryId]);
 
   const onSave = async () => {
-    if (!name.trim()) return Alert.alert('Name the category first.');
+    if (!name.trim()) return Alert.alert(t('category.nameFirst'));
     const capValue = cap.trim() === '' ? null : Number(cap);
     if (capValue != null && (Number.isNaN(capValue) || capValue < 0 || capValue > 100)) {
-      return Alert.alert('Cap must be a percent between 0 and 100.');
+      return Alert.alert(t('category.capError'));
     }
     const data = { name: name.trim(), allocationCapPercent: capValue, bucket };
     try {
@@ -50,16 +52,16 @@ export default function CategoryFormScreen() {
       else await addCategory(activeMonth, data);
       nav.goBack();
     } catch (e) {
-      Alert.alert('Could not save', (e as Error).message);
+      Alert.alert(t('common.couldNotSave'), (e as Error).message);
     }
   };
 
   const onDelete = () => {
     if (!categoryId) return;
-    Alert.alert('Remove category', 'Archive this category and its items?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('category.removeTitle'), t('category.removeBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Archive',
+        text: t('common.archive'),
         style: 'destructive',
         onPress: async () => {
           await archiveCategory(categoryId);
@@ -71,9 +73,9 @@ export default function CategoryFormScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg }}>
-      <Field label="Category name" value={name} onChangeText={setName} placeholder="Essentials" />
+      <Field label={t('category.name')} value={name} onChangeText={setName} placeholder="Essentials" />
       <Field
-        label="Allocation cap % (optional)"
+        label={t('category.cap')}
         value={cap}
         onChangeText={setCap}
         placeholder="e.g. 60"
@@ -81,14 +83,14 @@ export default function CategoryFormScreen() {
       />
 
       <Text style={{ color: colors.textMuted, fontSize: font.size.sm, marginBottom: spacing.xs }}>
-        50/30/20 bucket (optional)
+        {t('category.bucketOptional')}
       </Text>
       <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg }}>
         {BUCKETS.map((b) => {
           const active = bucket === b.key;
           return (
             <Pressable
-              key={b.label}
+              key={b.tkey}
               onPress={() => setBucket(b.key)}
               style={{
                 flex: 1,
@@ -101,15 +103,15 @@ export default function CategoryFormScreen() {
               }}
             >
               <Text style={{ color: active ? colors.onAccent : colors.text, fontWeight: '600', fontSize: font.size.sm }}>
-                {b.label}
+                {t(b.tkey)}
               </Text>
             </Pressable>
           );
         })}
       </View>
 
-      <Button title={categoryId ? 'Save' : 'Add category'} onPress={onSave} />
-      {categoryId && <Button title="Archive" onPress={onDelete} variant="danger" style={{ marginTop: spacing.sm }} />}
+      <Button title={categoryId ? t('common.save') : t('category.add')} onPress={onSave} />
+      {categoryId && <Button title={t('common.archive')} onPress={onDelete} variant="danger" style={{ marginTop: spacing.sm }} />}
     </ScrollView>
   );
 }

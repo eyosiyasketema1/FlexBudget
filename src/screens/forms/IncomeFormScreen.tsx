@@ -8,6 +8,7 @@ import { colors, spacing } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { addIncome, updateIncome, archiveIncome, getIncome } from '@/data/repository';
 import { toCents, formatCents } from '@/utils/money';
+import { useT } from '@/i18n';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 export default function IncomeFormScreen() {
@@ -15,6 +16,7 @@ export default function IncomeFormScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'IncomeForm'>>();
   const incomeId = route.params?.incomeId;
   const { activeMonth } = useActiveMonth();
+  const t = useT();
 
   const [label, setLabel] = useState('');
   const [category, setCategory] = useState('');
@@ -31,23 +33,23 @@ export default function IncomeFormScreen() {
   }, [incomeId]);
 
   const onSave = async () => {
-    if (!label.trim()) return Alert.alert('Add a label first.');
+    if (!label.trim()) return Alert.alert(t('income.addLabelFirst'));
     const data = { label: label.trim(), category: category.trim() || 'Other', amountCents: toCents(amount) };
     try {
       if (incomeId) await updateIncome(incomeId, data);
       else await addIncome(activeMonth, data);
       nav.goBack();
     } catch (e) {
-      Alert.alert('Could not save', (e as Error).message);
+      Alert.alert(t('common.couldNotSave'), (e as Error).message);
     }
   };
 
   const onDelete = () => {
     if (!incomeId) return;
-    Alert.alert('Remove income', 'Archive this income source?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('income.removeTitle'), t('income.removeBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Archive',
+        text: t('common.archive'),
         style: 'destructive',
         onPress: async () => {
           await archiveIncome(incomeId);
@@ -59,11 +61,11 @@ export default function IncomeFormScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg }}>
-      <Field label="Label" value={label} onChangeText={setLabel} placeholder="Monthly Salary" />
-      <Field label="Category" value={category} onChangeText={setCategory} placeholder="Primary Job" />
-      <Field label="Amount" value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" />
-      <Button title={incomeId ? 'Save' : 'Add income'} onPress={onSave} />
-      {incomeId && <Button title="Archive" onPress={onDelete} variant="danger" style={{ marginTop: spacing.sm }} />}
+      <Field label={t('income.label')} value={label} onChangeText={setLabel} placeholder="Monthly Salary" />
+      <Field label={t('income.category')} value={category} onChangeText={setCategory} placeholder="Primary Job" />
+      <Field label={t('income.amount')} value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" />
+      <Button title={incomeId ? t('common.save') : t('income.add')} onPress={onSave} />
+      {incomeId && <Button title={t('common.archive')} onPress={onDelete} variant="danger" style={{ marginTop: spacing.sm }} />}
     </ScrollView>
   );
 }
