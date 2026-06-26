@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { House, Sparkles, Settings2 } from 'lucide-react-native';
+import { House, Sparkles, Settings2, BadgeCheck } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
 import { colors } from '@/theme/theme';
@@ -10,6 +10,7 @@ import FloatingTabBar from '@/navigation/FloatingTabBar';
 import TimelineScreen from '@/screens/TimelineScreen';
 import BudgetScreen from '@/screens/BudgetScreen';
 import InsightsScreen from '@/screens/InsightsScreen';
+import ConfirmScreen from '@/screens/ConfirmScreen';
 import RolloverScreen from '@/screens/RolloverScreen';
 import MonthDetailScreen from '@/screens/MonthDetailScreen';
 import SettingsScreen from '@/screens/SettingsScreen';
@@ -59,6 +60,7 @@ function Tabs() {
       screenOptions={{ headerShown: false }}
     >
       <Tab.Screen name="Timeline" component={TimelineScreen} options={{ title: 'Home', tabBarIcon: tabIcon(House) }} />
+      <Tab.Screen name="Confirm" component={ConfirmScreen} options={{ title: 'To confirm', tabBarIcon: tabIcon(BadgeCheck) }} />
       <Tab.Screen name="Insights" component={InsightsScreen} options={{ tabBarIcon: tabIcon(Sparkles) }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarIcon: tabIcon(Settings2) }} />
     </Tab.Navigator>

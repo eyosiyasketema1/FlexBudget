@@ -6,9 +6,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import MonthDropdown from '@/components/MonthDropdown';
 import Card from '@/components/Card';
 import { AccountCard } from '@/components/AccountCard';
-import SavingsPromptBanner from '@/components/SavingsPromptBanner';
-import RecurringPromptBanner from '@/components/RecurringPromptBanner';
-import SmsPromptBanner from '@/components/SmsPromptBanner';
 import { colors, spacing, font, radius, layout } from '@/theme/theme';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useMonth } from '@/data/useMonth';
@@ -64,9 +61,6 @@ export default function TimelineScreen() {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <MonthDropdown />
       <ScrollView contentContainerStyle={{ paddingBottom: layout.tabBarSpace }}>
-        <SavingsPromptBanner />
-        <SmsPromptBanner />
-        <RecurringPromptBanner />
         {/* Salary account card (tap to edit the amount) */}
         <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.xl }}>
           <Pressable onPress={() => nav.navigate('IncomeForm', salary ? { incomeId: salary.id } : undefined)} accessibilityRole="button" accessibilityLabel="Edit salary">

@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Pressable, Platform } from 'react-native';
+import { View, Text, Pressable, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Plus } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { colors, radius, elevation } from '@/theme/theme';
+import { colors, radius, elevation, font } from '@/theme/theme';
+import { usePendingConfirmations } from '@/data/usePendingConfirmations';
 
 const BAR_HEIGHT = 68; // inner circle (52) + vertical padding (8 + 8)
 
@@ -13,6 +14,7 @@ const BAR_HEIGHT = 68; // inner circle (52) + vertical padding (8 + 8)
 // label. Active tab uses ink (near-black); inactive uses muted gray.
 export default function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { total: pendingCount } = usePendingConfirmations();
 
   return (
     <View
@@ -64,13 +66,15 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
               if (!focused && !event.defaultPrevented) navigation.navigate(route.name as never);
             };
 
+            const showBadge = route.name === 'Confirm' && pendingCount > 0;
+
             return (
               <Pressable
                 key={route.key}
                 onPress={onPress}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: focused }}
-                accessibilityLabel={label}
+                accessibilityLabel={showBadge ? `${label}, ${pendingCount} pending` : label}
                 android_ripple={null}
                 unstable_pressDelay={0}
                 style={{
@@ -83,6 +87,26 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
                 }}
               >
                 {Icon ? Icon({ focused, color: focused ? colors.onInk : colors.textMuted, size: 23 }) : null}
+                {showBadge ? (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: 6,
+                      right: 6,
+                      minWidth: 18,
+                      height: 18,
+                      paddingHorizontal: 4,
+                      borderRadius: 9,
+                      backgroundColor: colors.primary,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text style={{ color: colors.onInk, fontSize: font.size.xs, fontWeight: '800' }}>
+                      {pendingCount > 9 ? '9+' : pendingCount}
+                    </Text>
+                  </View>
+                ) : null}
               </Pressable>
             );
           })}
