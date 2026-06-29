@@ -14,6 +14,13 @@ export const STRINGS: Record<string, Record<Lang, string>> = {
   'onboard.dayQ': { en: 'When does it usually arrive?', am: 'አብዛኛውን ጊዜ መቼ ይደርሳል?', om: 'Yeroo baayʼee yoom dhufa?', sw: 'Kwa kawaida hufika lini?' },
   'onboard.start': { en: 'Start budgeting', am: 'በጀት መጀመር', om: 'Baajachuu jalqabi', sw: 'Anza kupanga bajeti' },
   'onboard.enterSalary': { en: 'Enter your salary to continue.', am: 'ለመቀጠል ደመወዝዎን ያስገቡ።', om: 'Itti fufuuf mindaa kee galchi.', sw: 'Weka mshahara wako kuendelea.' },
+  'onboard.continue': { en: 'Continue', am: 'ቀጥል', om: 'Itti fufi', sw: 'Endelea' },
+  'onboard.step2Title': { en: 'Your income', am: 'ገቢዎ', om: 'Galii kee', sw: 'Mapato yako' },
+  'onboard.methodTitle': { en: 'How do you want to budget?', am: 'እንዴት መመደብ ይፈልጋሉ?', om: 'Akkamitti baajachuu barbaadda?', sw: 'Unataka kupanga bajeti vipi?' },
+  'onboard.useMethod.title': { en: 'Use the 50/20/20/10 method', am: 'የ50/20/20/10 ዘዴን ይጠቀሙ', om: 'Tooftaa 50/20/20/10 fayyadami', sw: 'Tumia mbinu ya 50/20/20/10' },
+  'onboard.useMethod.body': { en: 'We set up Needs, Wants, Savings and Church for you, sized to your salary. You can edit anytime.', am: 'ፍላጎቶች፣ ምኞቶች፣ ቁጠባ እና ቤተክርስቲያን በደመወዝዎ መጠን እናዘጋጃለን። በማንኛውም ጊዜ ማስተካከል ይችላሉ።', om: 'Barbaachisaa, Fedhii, Qusannoo fi Bataskaana mindaa keetiin qopheessina. Yeroo barbaadde gulaaluu dandeessa.', sw: 'Tunaweka Mahitaji, Matamanio, Akiba na Kanisa kulingana na mshahara wako. Unaweza kuhariri wakati wowote.' },
+  'onboard.custom.title': { en: 'Create my own categories', am: 'የራሴን ምድቦች እፈጥራለሁ', om: 'Ramaddii koo ofiin uuma', sw: 'Tengeneza kategoria zangu' },
+  'onboard.custom.body': { en: 'Start blank and build your own categories in Expense Category Management.', am: 'ባዶ ጀምረው የራስዎን ምድቦች በወጪ ምድብ አስተዳደር ይገንቡ።', om: 'Duwwaa jalqabiitii ramaddii kee Bulchiinsa Ramaddii Baasii keessatti ijaari.', sw: 'Anza tupu na ujenge kategoria zako katika Usimamizi wa Kategoria.' },
   'onboard.editLater': { en: 'We’ll set up the usual categories (Needs, Wants, Church, Savings). You can add or remove main categories and sub-categories anytime in Settings.', am: 'የተለመዱ ምድቦችን (ፍላጎቶች፣ ምኞቶች፣ ቤተክርስቲያን፣ ቁጠባ) እናዘጋጃለን። በማንኛውም ጊዜ በቅንብሮች ዋና ምድቦችንና ንዑስ ምድቦችን መጨመር ወይም ማስወገድ ይችላሉ።', om: 'Ramaddiilee beekamoo (Barbaachisaa, Fedhii, Bataskaana, Qusannoo) ni qopheessina. Yeroo barbaadde Qindaa\'ina keessatti ramaddii guddaa fi xiqqaa dabaluu ykn balleessuu dandeessa.', sw: 'Tutaweka kategoria za kawaida (Mahitaji, Matamanio, Kanisa, Akiba). Unaweza kuongeza au kuondoa kategoria kuu na ndogo wakati wowote kwenye Mipangilio.' },
 
   // ── Help / how it works ───────────────────────────────────────────────────
@@ -169,7 +176,8 @@ export const STRINGS: Record<string, Record<Lang, string>> = {
   'def.Church': { en: 'Church', am: 'ቤተክርስቲያን', om: 'Bataskaana', sw: 'Kanisa' },
   'home.show': { en: 'Show', am: 'አሳይ', om: 'Agarsiisi', sw: 'Onyesha' },
   'home.hide': { en: 'Hide', am: 'ደብቅ', om: 'Dhoksi', sw: 'Ficha' },
-  'home.noExpenses': { en: 'No expenses set up for this month.', am: 'ለዚህ ወር የተዘጋጁ ወጪዎች የሉም።', om: 'Ji\'a kanaaf baasiiwwan qophaa\'an hin jiran.', sw: 'Hakuna matumizi yaliyowekwa kwa mwezi huu.' },
+  'home.noExpenses': { en: 'No categories yet. Add the ones you want to track.', am: 'እስካሁን ምድቦች የሉም። ለመከታተል የሚፈልጉትን ይጨምሩ።', om: 'Ammaaf ramaddiiwwan hin jiran. Kanneen hordofuu barbaaddu dabali.', sw: 'Bado hakuna kategoria. Ongeza unazotaka kufuatilia.' },
+  'home.setupCategories': { en: 'Set up categories', am: 'ምድቦችን አዘጋጅ', om: 'Ramaddiilee qopheessi', sw: 'Weka kategoria' },
   'home.noItems': { en: 'No items.', am: 'ምንም ንጥሎች የሉም።', om: 'Wantoonni hin jiran.', sw: 'Hakuna vipengele.' },
   'home.reconcile': { en: 'Reconcile balance', am: 'ሒሳብ አስታርቅ', om: 'Hir\'ina herregaa madaali', sw: 'Linganisha salio' },
   'home.reconcile.sub': { en: 'Forgot to log some spending? Enter what you actually have and catch the rest.', am: 'ወጪ መመዝገብ ረሱ? በትክክል ያለዎትን አስገብተው ቀሪውን ይያዙ።', om: 'Baasii galmeessuu dagatte? Wanta dhugumatti qabdu galchiitii kan hafe qabi.', sw: 'Ulisahau kurekodi matumizi? Weka ulicho nacho hasa na unase mengine.' },

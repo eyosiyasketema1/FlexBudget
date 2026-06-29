@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -11,6 +11,7 @@ import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useMonth } from '@/data/useMonth';
 import { formatCents } from '@/utils/money';
 import { useT, useLocalizeName } from '@/i18n';
+import { consumeOpenBudgetOnLaunch } from '@/state/launchFlags';
 import { BUCKET_ORDER } from '@/db/template';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import type { CategoryRollup, ItemVariance } from '@/calc/types';
@@ -53,6 +54,11 @@ export default function TimelineScreen() {
   const { snapshot, totals, rollups } = useMonth(activeMonth);
   const [hidden, setHidden] = useState(true); // amount hidden by default each load
 
+  // New "create my own" users land here, then we open category management once.
+  useEffect(() => {
+    if (consumeOpenBudgetOnLaunch()) nav.navigate('Budget');
+  }, [nav]);
+
   const income = (snapshot?.income ?? []).filter((i) => !i.isArchived);
   const salary = income[0]; // single salary account
   const buckets: CategoryRollup[] = [...rollups].sort((a, b) => bucketRank(a.bucket) - bucketRank(b.bucket));
@@ -82,7 +88,16 @@ export default function TimelineScreen() {
         {/* Expenses grouped by bucket */}
         <View style={{ paddingHorizontal: spacing.lg }}>
         {buckets.length === 0 && (
-          <Text style={{ color: colors.textFaint, marginTop: spacing.sm }}>{t('home.noExpenses')}</Text>
+          <View style={{ marginTop: spacing.sm }}>
+            <Text style={{ color: colors.textMuted, marginBottom: spacing.md }}>{t('home.noExpenses')}</Text>
+            <Pressable
+              onPress={() => nav.navigate('Budget')}
+              accessibilityRole="button"
+              style={{ backgroundColor: colors.primary, borderRadius: radius.md, paddingVertical: 14, alignItems: 'center' }}
+            >
+              <Text style={{ color: colors.onInk, fontWeight: '700', fontSize: font.size.md }}>{t('home.setupCategories')}</Text>
+            </Pressable>
+          </View>
         )}
 
         {buckets.map((cat) => {

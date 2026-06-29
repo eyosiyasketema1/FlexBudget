@@ -64,6 +64,18 @@ export async function seedTemplate(monthYear: string, salaryCents?: number): Pro
   if (useSalary) await rebalanceSavings(monthYear);
 }
 
+/** Seed only the salary income for a month (no categories) — "create my own". */
+export async function seedSalaryOnly(monthYear: string, salaryCents: number): Promise<void> {
+  const now = Date.now();
+  const amount = salaryCents > 0 ? salaryCents : SALARY_INCOME.amountCents;
+  await run('INSERT OR IGNORE INTO months (month_year, is_locked, created_at) VALUES (?, 0, ?)', [monthYear, now]);
+  await run(
+    'INSERT INTO income_items (id, month_year, label, category, amount_cents, is_archived, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)',
+    [makeId('INC'), monthYear, SALARY_INCOME.label, SALARY_INCOME.category, amount, now],
+  );
+  notifyChange();
+}
+
 /**
  * Ensures the current calendar month exists. Months are never created by hand:
  * - first ever launch → seed from the template

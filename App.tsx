@@ -5,7 +5,8 @@ import { StatusBar } from 'expo-status-bar';
 import * as Font from 'expo-font';
 
 import { initDatabase } from '@/db';
-import { ensureCurrentMonth, seedTemplate } from '@/db/seed';
+import { ensureCurrentMonth, seedTemplate, seedSalaryOnly } from '@/db/seed';
+import { setOpenBudgetOnLaunch } from '@/state/launchFlags';
 import { getCycleStartDayStored, setCycleStartDayStored, getRemindersEnabled, getSmsCaptureEnabled, hasAnyData, getOnboarded, setOnboarded, getAppLockHash } from '@/data/repository';
 import { scheduleReminders } from '@/utils/notifications';
 import { startSmsCapture } from '@/utils/smsReader';
@@ -89,12 +90,18 @@ export default function App() {
     })().finally(() => setReady(true));
   }, []);
 
-  // Called when onboarding completes: persist salary day, seed the first budget.
-  const completeOnboarding = async (salaryCents: number, day: number) => {
+  // Called when onboarding completes: persist salary day, seed the first budget
+  // (the 50/20/20/10 template, or salary-only for "create my own").
+  const completeOnboarding = async (salaryCents: number, day: number, mode: 'template' | 'custom') => {
     await setCycleStartDayStored(day);
     setCycleStartDayCache(day);
     const my = currentPeriodKey();
-    await seedTemplate(my, salaryCents);
+    if (mode === 'custom') {
+      await seedSalaryOnly(my, salaryCents);
+      setOpenBudgetOnLaunch(true); // jump to Expense Category Management
+    } else {
+      await seedTemplate(my, salaryCents);
+    }
     await setOnboarded(true);
     setInitialMonth(my);
     setNeedsOnboarding(false);
