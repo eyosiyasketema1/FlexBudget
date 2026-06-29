@@ -1,6 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { getReminderFrequency, getReminderHour } from '@/data/repository';
+import { getReminderFrequency, getReminderHour, getReminderMinute } from '@/data/repository';
 import { getStoredLang } from '@/i18n';
 import { translate } from '@/i18n';
 
@@ -65,7 +65,7 @@ export async function scheduleReminders(): Promise<void> {
   try {
     await cancelReminders();
     await registerActions();
-    const [lang, freq, hour] = await Promise.all([getStoredLang(), getReminderFrequency(), getReminderHour()]);
+    const [lang, freq, hour, minute] = await Promise.all([getStoredLang(), getReminderFrequency(), getReminderHour(), getReminderMinute()]);
     const content = {
       title: 'FlexBudget',
       body: translate(lang, 'notif.reminderBody'),
@@ -74,7 +74,7 @@ export async function scheduleReminders(): Promise<void> {
 
     let trigger: Notifications.NotificationTriggerInput;
     if (freq === 'daily') {
-      trigger = { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute: 0, channelId: 'reminders' };
+      trigger = { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute, channelId: 'reminders' };
     } else {
       const seconds = (freq === '12h' ? 12 : 6) * 60 * 60;
       trigger = { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds, repeats: true, channelId: 'reminders' };

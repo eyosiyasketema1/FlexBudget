@@ -6,7 +6,7 @@ import * as Font from 'expo-font';
 
 import { initDatabase } from '@/db';
 import { ensureCurrentMonth, seedTemplate } from '@/db/seed';
-import { getCycleStartDayStored, setCycleStartDayStored, getRemindersEnabled, getSmsCaptureEnabled, hasAnyData, getOnboarded, setOnboarded } from '@/data/repository';
+import { getCycleStartDayStored, setCycleStartDayStored, getRemindersEnabled, getSmsCaptureEnabled, hasAnyData, getOnboarded, setOnboarded, getAppLockHash } from '@/data/repository';
 import { scheduleReminders } from '@/utils/notifications';
 import { startSmsCapture } from '@/utils/smsReader';
 import { setCycleStartDayCache, currentPeriodKey } from '@/utils/date';
@@ -15,6 +15,7 @@ import { LanguageProvider, getStoredLang, getStoredCalendar, Lang, CalendarSyste
 import { setLangCache, setCalendarCache } from '@/utils/date';
 import RootNavigator from '@/navigation/RootNavigator';
 import OnboardingScreen from '@/screens/OnboardingScreen';
+import LockScreen from '@/screens/LockScreen';
 import { colors } from '@/theme/theme';
 import { FONT_FAMILY, fontAssets } from '@/theme/fonts';
 
@@ -44,6 +45,8 @@ export default function App() {
   const [initialLang, setInitialLang] = useState<Lang>('en');
   const [initialCalendar, setInitialCalendar] = useState<CalendarSystem>('gregorian');
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [lockHash, setLockHash] = useState<string | null>(null);
+  const [unlocked, setUnlocked] = useState(false);
 
   // Shared post-setup tasks (reminders, sms, fonts) once a budget exists.
   const finishSetup = async () => {
@@ -67,6 +70,7 @@ export default function App() {
       setLangCache(lang);
       setCalendarCache(calendar);
       setCycleStartDayCache(await getCycleStartDayStored());
+      setLockHash(await getAppLockHash()); // null = no app password
 
       // Decide first-run onboarding: only for a genuinely fresh install.
       const onboarded = await getOnboarded();
@@ -110,6 +114,8 @@ export default function App() {
         <StatusBar style="dark" />
         {needsOnboarding ? (
           <OnboardingScreen onDone={completeOnboarding} />
+        ) : lockHash && !unlocked ? (
+          <LockScreen expectedHash={lockHash} onUnlock={() => setUnlocked(true)} />
         ) : (
           <ActiveMonthProvider initialMonth={initialMonth}>
             <RootNavigator />

@@ -5,7 +5,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { LucideIcon } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import { Tags, ShieldCheck, Download, Upload, ChevronRight, ChevronDown, CalendarClock, BellRing, MessageSquareText, Languages, CalendarDays, RotateCcw, Clock, HelpCircle } from 'lucide-react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { Tags, ShieldCheck, Download, Upload, ChevronRight, ChevronDown, CalendarClock, BellRing, MessageSquareText, Languages, CalendarDays, RotateCcw, Clock, HelpCircle, Lock } from 'lucide-react-native';
 
 import Button from '@/components/Button';
 import ScreenTitle from '@/components/ScreenTitle';
@@ -15,10 +16,11 @@ import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useLang, LANGS, LANG_NAMES } from '@/i18n';
 import { exportBackup, importBackup } from '@/data/backup';
-import { getCycleStartDayStored, setCycleStartDayStored, getRemindersEnabled, setRemindersEnabled, getSmsCaptureEnabled, setSmsCaptureEnabled, resetSpending, getReminderFrequency, setReminderFrequency, getReminderHour, setReminderHour } from '@/data/repository';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { getCycleStartDayStored, setCycleStartDayStored, getRemindersEnabled, setRemindersEnabled, getSmsCaptureEnabled, setSmsCaptureEnabled, resetSpending, getReminderFrequency, setReminderFrequency, getReminderHour, setReminderHour, getReminderMinute, setReminderMinute, getAppLockHash } from '@/data/repository';
 import { ensureCurrentMonth } from '@/db/seed';
 import { applyReminderSetting, sendTestReminder, scheduleReminders } from '@/utils/notifications';
-import { enableSmsCapture, stopSmsCapture, isSmsModuleAvailable, ingestSmsBody, scanRecent } from '@/utils/smsReader';
+import { enableSmsCapture, stopSmsCapture, isSmsModuleAvailable, ingestSmsBody, scanRecent, hasSmsPermission, requestSmsPermission } from '@/utils/smsReader';
 import { setCycleStartDayCache } from '@/utils/date';
 
 const ordinal = (n: number) => {
@@ -42,27 +44,37 @@ export default function SettingsScreen() {
   const [smsOn, setSmsOn] = useState(false);
   const [freq, setFreq] = useState<'6h' | '12h' | 'daily'>('6h');
   const [hour, setHour] = useState(20);
+  const [minute, setMinute] = useState(0);
   const [freqOpen, setFreqOpen] = useState(false);
   const [timeOpen, setTimeOpen] = useState(false);
+  const [lockOn, setLockOn] = useState(false);
 
   useEffect(() => { getCycleStartDayStored().then(setCycleDay); }, []);
   useEffect(() => { getRemindersEnabled().then(setReminders); }, []);
   useEffect(() => { getSmsCaptureEnabled().then(setSmsOn); }, []);
   useEffect(() => { getReminderFrequency().then(setFreq); }, []);
   useEffect(() => { getReminderHour().then(setHour); }, []);
+  useEffect(() => { getReminderMinute().then(setMinute); }, []);
+  // Refresh lock status each time Settings regains focus (after the setup screen).
+  useFocusEffect(React.useCallback(() => { getAppLockHash().then((h) => setLockOn(!!h)); }, []));
 
-  const freqLabel = freq === 'daily' ? t('freq.dailyAt', { time: `${String(hour).padStart(2, '0')}:00` }) : freq === '12h' ? t('freq.12h') : t('freq.6h');
+  const hhmm = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  const freqLabel = freq === 'daily' ? t('freq.dailyAt', { time: hhmm }) : freq === '12h' ? t('freq.12h') : t('freq.6h');
 
   const chooseFreq = async (f: '6h' | '12h' | 'daily') => {
     setFreq(f);
     setFreqOpen(false);
     await setReminderFrequency(f);
     if (reminders) await scheduleReminders();
+    if (f === 'daily') setTimeOpen(true); // let them set the time right away
   };
-  const chooseHour = async (h: number) => {
-    setHour(h);
+  const onPickTime = async (_e: any, d?: Date) => {
     setTimeOpen(false);
-    await setReminderHour(h);
+    if (!d) return;
+    setHour(d.getHours());
+    setMinute(d.getMinutes());
+    await setReminderHour(d.getHours());
+    await setReminderMinute(d.getMinutes());
     if (reminders) await scheduleReminders();
   };
 
@@ -106,6 +118,14 @@ export default function SettingsScreen() {
     if (!isSmsModuleAvailable()) {
       Alert.alert(t('alert.needBuild'), t('alert.needBuild.scan'));
       return;
+    }
+    // Never read without permission — request it, and show a clear modal if denied.
+    if (!(await hasSmsPermission())) {
+      const granted = await requestSmsPermission();
+      if (!granted) {
+        Alert.alert(t('alert.smsPerm'), t('alert.smsPerm.body'));
+        return;
+      }
     }
     const n = await scanRecent(days);
     Alert.alert(t('alert.scanComplete'), n > 0 ? t('scan.found', { n }) : t('scan.none'));
@@ -262,6 +282,15 @@ export default function SettingsScreen() {
         </View>
       )}
 
+      <Section label={t('settings.section.security')} />
+      <Row
+        icon={Lock}
+        title={t('settings.appLock')}
+        subtitle={lockOn ? t('settings.appLock.on') : t('settings.appLock.off')}
+        onPress={() => nav.navigate('AppLock')}
+        right={chevron}
+      />
+
       <Text style={{ color: colors.textFaint, fontSize: font.size.xs, marginTop: spacing.xxl, textAlign: 'center' }}>
         {t('settings.localNote')}
       </Text>
@@ -275,14 +304,17 @@ export default function SettingsScreen() {
       <BottomSheet visible={freqOpen} onClose={() => setFreqOpen(false)} title={t('settings.reminderWhenSheet')}>
         <SheetOption label={t('freq.6h')} selected={freq === '6h'} onPress={() => chooseFreq('6h')} />
         <SheetOption label={t('freq.12h')} selected={freq === '12h'} onPress={() => chooseFreq('12h')} />
-        <SheetOption label={t('freq.daily')} selected={freq === 'daily'} onPress={() => { chooseFreq('daily'); setTimeOpen(true); }} />
+        <SheetOption label={t('freq.daily')} selected={freq === 'daily'} onPress={() => chooseFreq('daily')} />
       </BottomSheet>
 
-      <BottomSheet visible={timeOpen} onClose={() => setTimeOpen(false)} title={t('settings.reminderTimeSheet')}>
-        {[6, 8, 12, 15, 18, 20, 21].map((h) => (
-          <SheetOption key={h} label={`${String(h).padStart(2, '0')}:00`} selected={hour === h} onPress={() => chooseHour(h)} />
-        ))}
-      </BottomSheet>
+      {timeOpen && (
+        <DateTimePicker
+          value={new Date(2000, 0, 1, hour, minute)}
+          mode="time"
+          is24Hour
+          onChange={onPickTime}
+        />
+      )}
 
       <BottomSheet visible={scanOpen} onClose={() => setScanOpen(false)} title={t('scan.sheetTitle')}>
         <SheetOption label={t('scan.hour')} onPress={() => doScan(1 / 24)} />

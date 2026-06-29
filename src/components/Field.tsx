@@ -9,6 +9,8 @@ export default function Field({
   placeholder,
   keyboardType,
   prefix,
+  secureTextEntry,
+  autoFocus,
 }: {
   label: string;
   value: string;
@@ -16,6 +18,8 @@ export default function Field({
   placeholder?: string;
   keyboardType?: KeyboardTypeOptions;
   prefix?: string;
+  secureTextEntry?: boolean;
+  autoFocus?: boolean;
 }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -52,6 +56,8 @@ export default function Field({
           placeholder={placeholder}
           placeholderTextColor={colors.textFaint}
           keyboardType={keyboardType}
+          secureTextEntry={secureTextEntry}
+          autoFocus={autoFocus}
           accessibilityLabel={label}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}

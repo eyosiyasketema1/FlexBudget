@@ -20,12 +20,14 @@ export async function resetAllData(): Promise<void> {
   notifyChange();
 }
 
-// Seed a month from the fixed budget template (salary + Needs/Wants/Savings).
-// Pass `salaryCents` (from onboarding) to start with the user's own income —
-// Savings is then rebalanced so the plan still totals their salary.
+// Seed a month from the budget template. When `salaryCents` is given (from
+// onboarding), each category's sub-budgets are SCALED to the 50/20/10/20 rule
+// applied to the user's salary — so a 20,000 salary gets a 20,000-sized plan,
+// not the fixed 35,000 amounts. Savings is the rebalanced remainder.
 export async function seedTemplate(monthYear: string, salaryCents?: number): Promise<void> {
   const now = Date.now();
-  const amount = salaryCents && salaryCents > 0 ? salaryCents : SALARY_INCOME.amountCents;
+  const useSalary = salaryCents && salaryCents > 0;
+  const amount = useSalary ? salaryCents! : SALARY_INCOME.amountCents;
   const db = await getDb();
   await db.withTransactionAsync(async () => {
     await db.runAsync('INSERT OR IGNORE INTO months (month_year, is_locked, created_at) VALUES (?, 0, ?)', [monthYear, now]);
@@ -42,18 +44,24 @@ export async function seedTemplate(monthYear: string, salaryCents?: number): Pro
         'INSERT INTO expense_categories (id, month_year, name, allocation_cap_percent, bucket, is_archived, sort_order, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)',
         [catId, monthYear, cat.name, cat.capPercent, cat.bucket, order++, now],
       );
+
+      // Scale this category's sub-budgets to (cap% × salary), keeping each
+      // sub-item's relative share. Savings is left to rebalanceSavings.
+      const itemsTotal = cat.items.reduce((s, it) => s + it.budgetCents, 0) || 1;
+      const target = useSalary ? Math.round((cat.capPercent / 100) * amount) : null;
+
       let itemOrder = 0;
       for (const it of cat.items) {
+        const budget = target != null ? Math.round(target * (it.budgetCents / itemsTotal)) : it.budgetCents;
         await db.runAsync(
           'INSERT INTO expense_items (id, category_id, month_year, name, budget_cap_cents, actual_spent_cents, rollover_enabled, rollover_cents, is_archived, sort_order, created_at) VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, ?, ?)',
-          [makeId('E'), catId, monthYear, it.name, it.budgetCents, itemOrder++, now],
+          [makeId('E'), catId, monthYear, it.name, budget, itemOrder++, now],
         );
       }
     }
   });
-  // If the user gave a custom salary, let Savings absorb the difference so the
-  // plan still adds up to their income.
-  if (salaryCents && salaryCents > 0) await rebalanceSavings(monthYear);
+  // Savings absorbs any rounding remainder so the plan totals the salary exactly.
+  if (useSalary) await rebalanceSavings(monthYear);
 }
 
 /**

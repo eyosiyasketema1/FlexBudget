@@ -16,6 +16,15 @@ export function isSmsModuleAvailable(): boolean {
   return Platform.OS === 'android' && !!Sms && typeof Sms.list === 'function';
 }
 
+export async function hasSmsPermission(): Promise<boolean> {
+  if (Platform.OS !== 'android') return false;
+  try {
+    return await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_SMS);
+  } catch {
+    return false;
+  }
+}
+
 export async function requestSmsPermission(): Promise<boolean> {
   if (Platform.OS !== 'android') return false;
   try {
@@ -41,9 +50,10 @@ export async function ingestSmsBody(body: string, sender?: string | null, date?:
   return true;
 }
 
-function listInbox(minDate: number): Promise<{ body: string; date: number; address: string }[]> {
+async function listInbox(minDate: number): Promise<{ body: string; date: number; address: string }[]> {
+  if (!isSmsModuleAvailable()) return [];
+  if (!(await hasSmsPermission())) return []; // never call native read without permission
   return new Promise((resolve) => {
-    if (!isSmsModuleAvailable()) return resolve([]);
     try {
       Sms.list(
         JSON.stringify({ box: 'inbox', minDate, maxCount: 200 }),

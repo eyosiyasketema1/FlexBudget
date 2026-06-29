@@ -13,6 +13,7 @@ import BudgetScreen from '@/screens/BudgetScreen';
 import InsightsScreen from '@/screens/InsightsScreen';
 import ConfirmScreen from '@/screens/ConfirmScreen';
 import HelpScreen from '@/screens/HelpScreen';
+import AppLockScreen from '@/screens/AppLockScreen';
 import RolloverScreen from '@/screens/RolloverScreen';
 import MonthDetailScreen from '@/screens/MonthDetailScreen';
 import SettingsScreen from '@/screens/SettingsScreen';
@@ -26,6 +27,7 @@ export type RootStackParamList = {
   Tabs: undefined;
   Budget: undefined;
   Help: undefined;
+  AppLock: undefined;
   Rollover: undefined;
   MonthDetail: { monthYear: string };
   RecordExpense: { itemId?: string } | undefined;
@@ -85,6 +87,7 @@ export default function RootNavigator() {
         <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
         <Stack.Screen name="Budget" component={BudgetScreen} options={{ title: t('nav.expenseCategories') }} />
         <Stack.Screen name="Help" component={HelpScreen} options={{ title: t('settings.howItWorks') }} />
+        <Stack.Screen name="AppLock" component={AppLockScreen} options={{ title: t('settings.appLock') }} />
         <Stack.Screen name="Rollover" component={RolloverScreen} options={{ title: t('nav.rollover') }} />
         <Stack.Screen name="MonthDetail" component={MonthDetailScreen} options={{ title: t('nav.month') }} />
         <Stack.Group screenOptions={{ presentation: 'modal' }}>

@@ -371,6 +371,15 @@ export async function getReminderHour(): Promise<number> {
 export async function setReminderHour(h: number): Promise<void> {
   await setSetting(REMINDER_HOUR_KEY, String(Math.min(23, Math.max(0, Math.floor(h)))));
 }
+const REMINDER_MIN_KEY = 'reminder_minute';
+export async function getReminderMinute(): Promise<number> {
+  const v = await getSetting(REMINDER_MIN_KEY);
+  const n = v ? parseInt(v, 10) : 0;
+  return Number.isFinite(n) && n >= 0 && n <= 59 ? n : 0;
+}
+export async function setReminderMinute(m: number): Promise<void> {
+  await setSetting(REMINDER_MIN_KEY, String(Math.min(59, Math.max(0, Math.floor(m)))));
+}
 
 const SMS_KEY = 'sms_capture_enabled';
 export async function getSmsCaptureEnabled(): Promise<boolean> {
@@ -383,6 +392,18 @@ export async function setSmsCaptureEnabled(on: boolean): Promise<void> {
 /** True if any month exists yet (used to decide first-run onboarding). */
 export async function hasAnyData(): Promise<boolean> {
   return !!(await first('SELECT 1 FROM months LIMIT 1'));
+}
+
+const LOCK_KEY = 'app_lock_hash';
+export async function getAppLockHash(): Promise<string | null> {
+  const v = await getSetting(LOCK_KEY);
+  return v && v.length > 0 ? v : null;
+}
+export async function setAppLockHash(hash: string): Promise<void> {
+  await setSetting(LOCK_KEY, hash);
+}
+export async function clearAppLock(): Promise<void> {
+  await setSetting(LOCK_KEY, '');
 }
 
 const ONBOARDED_KEY = 'onboarded';
