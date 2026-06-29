@@ -5,15 +5,16 @@ import { StatusBar } from 'expo-status-bar';
 import * as Font from 'expo-font';
 
 import { initDatabase } from '@/db';
-import { ensureCurrentMonth } from '@/db/seed';
-import { getCycleStartDayStored, getRemindersEnabled, getSmsCaptureEnabled } from '@/data/repository';
+import { ensureCurrentMonth, seedTemplate } from '@/db/seed';
+import { getCycleStartDayStored, setCycleStartDayStored, getRemindersEnabled, getSmsCaptureEnabled, hasAnyData, getOnboarded, setOnboarded } from '@/data/repository';
 import { scheduleReminders } from '@/utils/notifications';
 import { startSmsCapture } from '@/utils/smsReader';
-import { setCycleStartDayCache } from '@/utils/date';
+import { setCycleStartDayCache, currentPeriodKey } from '@/utils/date';
 import { ActiveMonthProvider } from '@/state/ActiveMonthContext';
 import { LanguageProvider, getStoredLang, getStoredCalendar, Lang, CalendarSystem } from '@/i18n';
 import { setLangCache, setCalendarCache } from '@/utils/date';
 import RootNavigator from '@/navigation/RootNavigator';
+import OnboardingScreen from '@/screens/OnboardingScreen';
 import { colors } from '@/theme/theme';
 import { FONT_FAMILY, fontAssets } from '@/theme/fonts';
 
@@ -42,6 +43,19 @@ export default function App() {
   const [initialMonth, setInitialMonth] = useState<string | undefined>(undefined);
   const [initialLang, setInitialLang] = useState<Lang>('en');
   const [initialCalendar, setInitialCalendar] = useState<CalendarSystem>('gregorian');
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+
+  // Shared post-setup tasks (reminders, sms, fonts) once a budget exists.
+  const finishSetup = async () => {
+    if (await getRemindersEnabled()) scheduleReminders();
+    if (await getSmsCaptureEnabled()) startSmsCapture();
+    try {
+      await Font.loadAsync(fontAssets);
+      applyGeneralSans();
+    } catch {
+      // Real font not present yet — keep the system font.
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -52,22 +66,35 @@ export default function App() {
       setInitialCalendar(calendar);
       setLangCache(lang);
       setCalendarCache(calendar);
-      // Load the pay-cycle start day, then resolve the current period safely.
       setCycleStartDayCache(await getCycleStartDayStored());
+
+      // Decide first-run onboarding: only for a genuinely fresh install.
+      const onboarded = await getOnboarded();
+      const dataExists = await hasAnyData();
+      if (!onboarded && !dataExists) {
+        setNeedsOnboarding(true);
+        await Font.loadAsync(fontAssets).then(applyGeneralSans).catch(() => {});
+        return; // onboarding seeds the first budget
+      }
+      if (!onboarded && dataExists) await setOnboarded(true); // existing user upgrading
+
       const resolved = await ensureCurrentMonth();
       setInitialMonth(resolved);
-      // Re-arm reminders if the user has them on (schedules persist, but this
-      // keeps them alive across reinstalls / cleared schedules).
-      if (await getRemindersEnabled()) scheduleReminders();
-      if (await getSmsCaptureEnabled()) startSmsCapture();
-      try {
-        await Font.loadAsync(fontAssets);
-        applyGeneralSans();
-      } catch {
-        // Real font not present yet — keep the system font.
-      }
+      await finishSetup();
     })().finally(() => setReady(true));
   }, []);
+
+  // Called when onboarding completes: persist salary day, seed the first budget.
+  const completeOnboarding = async (salaryCents: number, day: number) => {
+    await setCycleStartDayStored(day);
+    setCycleStartDayCache(day);
+    const my = currentPeriodKey();
+    await seedTemplate(my, salaryCents);
+    await setOnboarded(true);
+    setInitialMonth(my);
+    setNeedsOnboarding(false);
+    await finishSetup();
+  };
 
   if (!ready) {
     return (
@@ -80,10 +107,14 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <LanguageProvider initialLang={initialLang} initialCalendar={initialCalendar}>
-        <ActiveMonthProvider initialMonth={initialMonth}>
-          <StatusBar style="dark" />
-          <RootNavigator />
-        </ActiveMonthProvider>
+        <StatusBar style="dark" />
+        {needsOnboarding ? (
+          <OnboardingScreen onDone={completeOnboarding} />
+        ) : (
+          <ActiveMonthProvider initialMonth={initialMonth}>
+            <RootNavigator />
+          </ActiveMonthProvider>
+        )}
       </LanguageProvider>
     </SafeAreaProvider>
   );

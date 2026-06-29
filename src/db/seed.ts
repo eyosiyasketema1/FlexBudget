@@ -1,7 +1,7 @@
 import { getDb, all, first, run, makeId, notifyChange } from '@/db';
 import { currentPeriodKey } from '@/utils/date';
 import { SALARY_INCOME, BUDGET_TEMPLATE } from './template';
-import { copyBaselineToNewMonth } from '@/data/repository';
+import { copyBaselineToNewMonth, rebalanceSavings } from '@/data/repository';
 
 /**
  * Wipe ALL data to a blank start: no income, no categories, no expenses, no
@@ -21,15 +21,18 @@ export async function resetAllData(): Promise<void> {
 }
 
 // Seed a month from the fixed budget template (salary + Needs/Wants/Savings).
-export async function seedTemplate(monthYear: string): Promise<void> {
+// Pass `salaryCents` (from onboarding) to start with the user's own income —
+// Savings is then rebalanced so the plan still totals their salary.
+export async function seedTemplate(monthYear: string, salaryCents?: number): Promise<void> {
   const now = Date.now();
+  const amount = salaryCents && salaryCents > 0 ? salaryCents : SALARY_INCOME.amountCents;
   const db = await getDb();
   await db.withTransactionAsync(async () => {
     await db.runAsync('INSERT OR IGNORE INTO months (month_year, is_locked, created_at) VALUES (?, 0, ?)', [monthYear, now]);
 
     await db.runAsync(
       'INSERT INTO income_items (id, month_year, label, category, amount_cents, is_archived, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)',
-      [makeId('INC'), monthYear, SALARY_INCOME.label, SALARY_INCOME.category, SALARY_INCOME.amountCents, now],
+      [makeId('INC'), monthYear, SALARY_INCOME.label, SALARY_INCOME.category, amount, now],
     );
 
     let order = 0;
@@ -48,6 +51,9 @@ export async function seedTemplate(monthYear: string): Promise<void> {
       }
     }
   });
+  // If the user gave a custom salary, let Savings absorb the difference so the
+  // plan still adds up to their income.
+  if (salaryCents && salaryCents > 0) await rebalanceSavings(monthYear);
 }
 
 /**

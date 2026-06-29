@@ -56,6 +56,20 @@ describe('parseTransactionSms', () => {
     expect(parseTransactionSms('Your account was debited. Contact us for details.')).toBeNull();
   });
 
+  it('parses "Br." with a period (Hibret/others)', () => {
+    const sms = 'Dear customer, your A/C is debited Br. 750.00. Available balance Br. 12,000.00';
+    expect(parseTransactionSms(sms)).toEqual({ amountCents: 75000, kind: 'debit' });
+  });
+
+  it('captures via bank context when wording is unusual', () => {
+    const sms = 'Dear Customer, A/C 100xxxx POS transaction ETB 1,200.00. Ref TX998. Bal ETB 3,400.00';
+    expect(parseTransactionSms(sms)).toEqual({ amountCents: 120000, kind: 'debit' });
+  });
+
+  it('ignores promotional bank messages', () => {
+    expect(parseTransactionSms('Open an account today and get ETB 50 bonus! Limited offer.')).toBeNull();
+  });
+
   it('does not treat a data-bundle size as money', () => {
     // currency token sitting next to a data size must not be captured as ETB
     expect(parseTransactionSms('Your account is debited Br 1024 MB data bonus')).toBeNull();

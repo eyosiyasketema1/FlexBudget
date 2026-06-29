@@ -4,6 +4,18 @@ import type { Lang } from './index';
 // en = English, am = Amharic (አማርኛ), om = Afaan Oromoo, sw = Kiswahili.
 // English is authoritative; translate() falls back to English for any gap.
 export const STRINGS: Record<string, Record<Lang, string>> = {
+  // ── Onboarding ────────────────────────────────────────────────────────────
+  'onboard.welcomeTitle': { en: 'Welcome to FlexBudget', am: 'ወደ FlexBudget እንኳን በደህና መጡ', om: 'Baga gara FlexBudget nagaan dhuftan', sw: 'Karibu FlexBudget' },
+  'onboard.welcomeSub': { en: 'Plan your money, track spending, and grow your savings — all on your phone, fully private.', am: 'ገንዘብዎን ያቅዱ፣ ወጪን ይከታተሉ እና ቁጠባዎን ያሳድጉ — ሁሉም በስልክዎ ላይ፣ ሙሉ ሚስጥራዊ።', om: 'Maallaqa kee karoorfadhu, baasii hordofi, qusannoo kee guddisi — hunda bilbila kee irratti, guutuu dhuunfaa.', sw: 'Panga pesa zako, fuatilia matumizi, na kuza akiba yako — yote kwenye simu yako, faragha kabisa.' },
+  'onboard.feature1': { en: 'Budget by category with the 50/20/20/10 guide', am: 'በ50/20/20/10 መመሪያ በምድብ ይመድቡ', om: 'Qajeelfama 50/20/20/10\'n ramaddiidhaan baajadhu', sw: 'Panga bajeti kwa kategoria kwa mwongozo wa 50/20/20/10' },
+  'onboard.feature2': { en: 'Log spending yourself, or let SMS capture it automatically', am: 'ወጪን ራስዎ ይመዝግቡ ወይም SMS በራስ-ሰር ይያዘው', om: 'Baasii ofii kee galmeessi ykn SMS ofumaan haa qabu', sw: 'Rekodi matumizi mwenyewe, au acha SMS iyanase kiotomatiki' },
+  'onboard.feature3': { en: 'Confirm your savings each period and watch them grow', am: 'በየወቅቱ ቁጠባዎን ያረጋግጡ እና ሲያድግ ይመልከቱ', om: 'Yeroo hunda qusannoo kee mirkaneessiitii guddachaa ilaali', sw: 'Thibitisha akiba yako kila kipindi na uone ikikua' },
+  'onboard.salaryQ': { en: 'What is your monthly salary / income?', am: 'ወርሃዊ ደመወዝዎ / ገቢዎ ስንት ነው?', om: 'Mindaan / galiin ji\'aa kee meeqa?', sw: 'Mshahara / mapato yako ya mwezi ni kiasi gani?' },
+  'onboard.dayQ': { en: 'When does it usually arrive?', am: 'አብዛኛውን ጊዜ መቼ ይደርሳል?', om: 'Yeroo baayʼee yoom dhufa?', sw: 'Kwa kawaida hufika lini?' },
+  'onboard.start': { en: 'Start budgeting', am: 'በጀት መጀመር', om: 'Baajachuu jalqabi', sw: 'Anza kupanga bajeti' },
+  'onboard.enterSalary': { en: 'Enter your salary to continue.', am: 'ለመቀጠል ደመወዝዎን ያስገቡ።', om: 'Itti fufuuf mindaa kee galchi.', sw: 'Weka mshahara wako kuendelea.' },
+  'onboard.editLater': { en: 'You can change everything later in Settings.', am: 'በኋላ ሁሉንም በቅንብሮች መቀየር ይችላሉ።', om: 'Booda hunda Qindaa\'ina keessatti jijjiiruu dandeessa.', sw: 'Unaweza kubadilisha kila kitu baadaye kwenye Mipangilio.' },
+
   // ── Tabs ──────────────────────────────────────────────────────────────────
   'tab.home': { en: 'Home', am: 'መነሻ', om: 'Mana', sw: 'Nyumbani' },
   'tab.confirm': { en: 'To confirm', am: 'ለማረጋገጥ', om: 'Mirkaneessuf', sw: 'Thibitisha' },
@@ -32,6 +44,13 @@ export const STRINGS: Record<string, Record<Lang, string>> = {
   'settings.sms': { en: 'Read transaction SMS', am: 'የግብይት SMS አንብብ', om: 'SMS daldalaa dubbisi', sw: 'Soma SMS za miamala' },
   'settings.sms.sub': { en: 'Spot telebirr/CBE payments and ask you to confirm them', am: 'የቴሌብር/CBE ክፍያዎችን አግኝቶ እንዲያረጋግጡ ይጠይቃል', om: 'Kaffaltii telebirr/CBE argee akka mirkaneessitu si gaafata', sw: 'Tambua malipo ya telebirr/CBE na kukuomba uthibitishe' },
   'settings.scanNow': { en: 'Scan messages now', am: 'መልዕክቶችን አሁን ቃኝ', om: 'Ergaawwan amma sakatta\'i', sw: 'Changanua ujumbe sasa' },
+  'scan.sheetTitle': { en: 'Scan messages from…', am: 'መልዕክቶችን ከ… ቃኝ', om: 'Ergaawwan… irraa sakatta\'i', sw: 'Changanua ujumbe kutoka…' },
+  'scan.hour': { en: 'Past hour', am: 'ያለፈው ሰዓት', om: 'Sa\'aatii darbe', sw: 'Saa iliyopita' },
+  'scan.day': { en: 'Past day', am: 'ያለፈው ቀን', om: 'Guyyaa darbe', sw: 'Siku iliyopita' },
+  'scan.4days': { en: 'Last 4 days', am: 'ያለፉት 4 ቀናት', om: 'Guyyoota 4 darban', sw: 'Siku 4 zilizopita' },
+  'scan.7days': { en: 'Last 7 days', am: 'ያለፉት 7 ቀናት', om: 'Guyyoota 7 darban', sw: 'Siku 7 zilizopita' },
+  'scan.found': { en: 'Found {n} transaction(s). Check "To confirm".', am: '{n} ግብይት ተገኝቷል። "ለማረጋገጥ" ይመልከቱ።', om: 'Daldala {n} argame. "Mirkaneessuf" ilaali.', sw: 'Imepata miamala {n}. Angalia "Thibitisha".' },
+  'scan.none': { en: 'No new transaction messages found. Make sure SMS permission is granted.', am: 'አዲስ የግብይት መልዕክት አልተገኘም። የSMS ፈቃድ መሰጠቱን ያረጋግጡ።', om: 'Ergaan daldalaa haaraan hin argamne. Hayyamni SMS kenname mirkaneeffadhu.', sw: 'Hakuna ujumbe mpya wa miamala. Hakikisha ruhusa ya SMS imetolewa.' },
   'settings.simulate': { en: 'Simulate (test)', am: 'አስመስል (ሙከራ)', om: 'Fakkeessi (qormaata)', sw: 'Iga (jaribio)' },
   'settings.language': { en: 'Language', am: 'ቋንቋ', om: 'Afaan', sw: 'Lugha' },
   'settings.backup': { en: 'Backup & Restore', am: 'ምትኬ እና መልሶ ማግኘት', om: 'Baackaappii fi Deebisuu', sw: 'Hifadhi nakala na Rejesha' },
@@ -40,6 +59,11 @@ export const STRINGS: Record<string, Record<Lang, string>> = {
   'settings.backup.do': { en: 'Back up my data', am: 'ውሂቤን ጠብቅ', om: 'Daataa koo baackaappii godhi', sw: 'Hifadhi data yangu' },
   'settings.backup.restore': { en: 'Restore from file', am: 'ከፋይል መልስ', om: 'Faayilii irraa deebisi', sw: 'Rejesha kutoka faili' },
   'settings.localNote': { en: 'All data is stored locally on this device. Nothing is sent to a server.', am: 'ሁሉም ውሂብ በዚህ መሣሪያ ላይ ይቀመጣል። ምንም ወደ አገልጋይ አይላክም።', om: 'Daataan hundi meeshaa kana irratti kuufama. Homaa gara sarvarii hin ergamu.', sw: 'Data yote huhifadhiwa kwenye kifaa hiki. Hakuna kinachotumwa kwa seva.' },
+  'settings.reset': { en: 'Reset this month’s spending', am: 'የዚህን ወር ወጪ ዳግም አስጀምር', om: 'Baasii ji\'a kanaa haaromsi', sw: 'Weka upya matumizi ya mwezi huu' },
+  'settings.reset.sub': { en: 'Set all recorded amounts back to zero (keeps your budgets)', am: 'ሁሉንም የተመዘገቡ መጠኖች ወደ ዜሮ ይመልሳል (በጀቶችዎን ይጠብቃል)', om: 'Baayina galmaa\'e hunda gara zeerootti deebisa (baajata kee eega)', sw: 'Rudisha viwango vyote vilivyorekodiwa kuwa sifuri (bajeti zinabaki)' },
+  'reset.confirmTitle': { en: 'Reset spending?', am: 'ወጪ ዳግም ይጀመር?', om: 'Baasii haaromsi?', sw: 'Weka upya matumizi?' },
+  'reset.confirmBody': { en: 'This sets every recorded payment for this month back to zero. Your categories and budgets stay. This can’t be undone.', am: 'ይህ የዚህን ወር ሁሉንም የተመዘገበ ክፍያ ወደ ዜሮ ይመልሳል። ምድቦችዎና በጀቶችዎ ይቆያሉ። ይህ መቀልበስ አይቻልም።', om: 'Kun kaffaltii ji\'a kanaa galmaa\'e hunda gara zeerootti deebisa. Ramaddiif baajanni kee ni hafu. Kun deebi\'uu hin danda\'u.', sw: 'Hii inarudisha kila malipo yaliyorekodiwa mwezi huu kuwa sifuri. Kategoria na bajeti zinabaki. Haiwezi kutenduliwa.' },
+  'reset.done': { en: 'Spending reset', am: 'ወጪ ዳግም ተጀምሯል', om: 'Baasiin haaromfame', sw: 'Matumizi yamewekwa upya' },
   'settings.cycleSheet': { en: 'When does your salary arrive?', am: 'ደመወዝዎ መቼ ይደርሳል?', om: 'Mindaan kee yoom dhufa?', sw: 'Mshahara wako hufika lini?' },
   'settings.cycle.first': { en: '1st of the month (default)', am: 'የወሩ 1ኛ ቀን (ነባሪ)', om: 'Guyyaa 1ffaa ji\'aa (durtii)', sw: 'Tarehe 1 ya mwezi (chaguo-msingi)' },
   'settings.cycle.sub': { en: 'The day your money usually arrives. Your budget month runs from this day to the next.', am: 'ገንዘብዎ አብዛኛውን ጊዜ የሚደርስበት ቀን። የበጀት ወርዎ ከዚህ ቀን እስከ ቀጣዩ ይሄዳል።', om: 'Guyyaa maallaqni kee yeroo baayʼee dhufu. Jiʼi baajata keetii guyyaa kanaa hanga itti aanutti deema.', sw: 'Siku ambayo pesa zako hufika mara nyingi. Mwezi wako wa bajeti huanza siku hii hadi inayofuata.' },

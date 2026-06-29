@@ -361,6 +361,19 @@ export async function setSmsCaptureEnabled(on: boolean): Promise<void> {
   await setSetting(SMS_KEY, on ? '1' : '0');
 }
 
+/** True if any month exists yet (used to decide first-run onboarding). */
+export async function hasAnyData(): Promise<boolean> {
+  return !!(await first('SELECT 1 FROM months LIMIT 1'));
+}
+
+const ONBOARDED_KEY = 'onboarded';
+export async function getOnboarded(): Promise<boolean> {
+  return (await getSetting(ONBOARDED_KEY)) === '1';
+}
+export async function setOnboarded(v: boolean): Promise<void> {
+  await setSetting(ONBOARDED_KEY, v ? '1' : '0');
+}
+
 const CALENDAR_KEY = 'calendar_system';
 export async function getCalendarSystem(): Promise<'gregorian' | 'ethiopian'> {
   return (await getSetting(CALENDAR_KEY)) === 'ethiopian' ? 'ethiopian' : 'gregorian';
@@ -436,6 +449,19 @@ export async function listSubcategories(monthYear: string): Promise<SubcategoryR
     [monthYear],
   );
   return rows.map((r) => ({ id: r.id, name: r.name, categoryId: r.categoryId, categoryName: r.categoryName, bucket: r.bucket ?? null }));
+}
+
+/**
+ * Reset all recorded spending for a month back to zero: clears every item's
+ * actual-spent and deletes the payment ledger for that month. Budgets and
+ * categories are kept. Explicit user action (confirm in the UI first).
+ */
+export async function resetSpending(monthYear: string): Promise<void> {
+  await assertUnlocked(monthYear);
+  await run('UPDATE expense_items SET actual_spent_cents = 0 WHERE month_year = ?', [monthYear]);
+  await run('DELETE FROM expense_entries WHERE month_year = ?', [monthYear]);
+  await rebalanceSavings(monthYear);
+  notifyChange();
 }
 
 /** Record a payment against a sub-category: logs it and adds to actual spent. */

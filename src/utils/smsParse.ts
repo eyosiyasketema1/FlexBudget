@@ -12,9 +12,10 @@ export interface ParsedSms {
 
 // Money leaving the account (an expense). English + Amharic.
 const DEBIT_WORDS = [
-  'debit', 'debited', 'transferred', 'transfer of', 'paid', 'payment', 'purchase', 'purchased',
+  'debit', 'debited', 'transferred', 'transfer', 'paid', 'payment', 'purchase', 'purchased',
   'withdrawn', 'withdrawal', 'withdrew', 'sent', 'bought', 'spent', 'charged', 'billed', 'deducted',
-  'ተከፍሏል', 'ከፍለዋል', 'ከፍለው', 'ተልኳል', 'ልከዋል', 'ተቀንሷል', 'ወጪ', 'ገዝተዋል',
+  'transacted', 'transaction', 'pos', 'atm',
+  'ተከፍሏል', 'ከፍለዋል', 'ከፍለው', 'ተልኳል', 'ልከዋል', 'ተቀንሷል', 'ወጪ', 'ገዝተዋል', 'ተላልፏል',
 ];
 // Money coming in (income — captured as credit, not logged as spend).
 const CREDIT_WORDS = [
@@ -22,8 +23,15 @@ const CREDIT_WORDS = [
   'ገብቷል', 'ተቀብለዋል', 'ገቢ', 'ተቀብለው', 'ተመላሽ',
 ];
 
-// "ETB 1,250.00" / "Birr 250" / "Br 99.50" / "ብር 100" and the amount-first form.
-const CURRENCY = /(?:etb|birr|br|ብር)\s*([\d,]+(?:\.\d{1,2})?)|([\d,]+(?:\.\d{1,2})?)\s*(?:etb|birr|br|ብር)/gi;
+// Banking context — lets us recognize a transaction even when the wording is
+// unusual (some banks, e.g. Hibret, phrase it differently). Used as a fallback.
+const BANK_CONTEXT = /\b(a\/c|acct|account|balance|bal|avail|ref|reference|txn|trx|pos|atm|wallet)\b|ሂሳብ|ቀሪ/i;
+// Promotional/marketing wording — don't capture these via the bank-context fallback.
+const PROMO = /\b(bonus|offer|win|won|discount|promo|congratulation|sale|free|reward|gift|prize|loan|interest rate)\b/i;
+
+// Currency amount: "ETB 1,250.00" / "Birr 250" / "Br. 99.50" / "ETB500" / "ብር 100"
+// and the amount-first form "250.00 Br". Allows an optional . or : after the token.
+const CURRENCY = /(?:etb|birr|br|ብር)[.\s:]*([\d,]+(?:\.\d{1,2})?)|([\d,]+(?:\.\d{1,2})?)\s*(?:etb|birr|br|ብር)\b/gi;
 
 // Words that precede a *balance* figure (to exclude it from the txn amount).
 const BALANCE_HINT = /(bal(?:ance)?|ቀሪ)\b[^.\d]*$/;
@@ -40,9 +48,12 @@ export function parseTransactionSms(body: string): ParsedSms | null {
 
   const hasDebit = DEBIT_WORDS.some((w) => text.includes(w));
   const hasCredit = CREDIT_WORDS.some((w) => text.includes(w));
-  if (!hasDebit && !hasCredit) return null;
-  // If both appear, lean on debit (e.g. "debited ... balance" noise).
-  const kind: 'debit' | 'credit' = hasDebit ? 'debit' : 'credit';
+  // Recognize a transaction if there's a clear debit/credit word, OR a banking
+  // context (account/balance/ref/txn…) which covers banks with unusual wording.
+  // The bank-context fallback is skipped for promotional messages.
+  if (!hasDebit && !hasCredit && (!BANK_CONTEXT.test(text) || PROMO.test(text))) return null;
+  // If both appear, lean on debit. With only bank-context, assume debit (spend).
+  const kind: 'debit' | 'credit' = hasCredit && !hasDebit ? 'credit' : 'debit';
 
   // Collect all currency amounts with their position in the string.
   const found: { cents: number; index: number }[] = [];

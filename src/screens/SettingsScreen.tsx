@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { LucideIcon } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import { Tags, ShieldCheck, Download, Upload, ChevronRight, ChevronDown, CalendarClock, BellRing, MessageSquareText, Languages, CalendarDays } from 'lucide-react-native';
+import { Tags, ShieldCheck, Download, Upload, ChevronRight, ChevronDown, CalendarClock, BellRing, MessageSquareText, Languages, CalendarDays, RotateCcw } from 'lucide-react-native';
 
 import Button from '@/components/Button';
 import ScreenTitle from '@/components/ScreenTitle';
@@ -15,7 +15,7 @@ import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useLang, LANGS, LANG_NAMES } from '@/i18n';
 import { exportBackup, importBackup } from '@/data/backup';
-import { getCycleStartDayStored, setCycleStartDayStored, getRemindersEnabled, setRemindersEnabled, getSmsCaptureEnabled, setSmsCaptureEnabled } from '@/data/repository';
+import { getCycleStartDayStored, setCycleStartDayStored, getRemindersEnabled, setRemindersEnabled, getSmsCaptureEnabled, setSmsCaptureEnabled, resetSpending } from '@/data/repository';
 import { ensureCurrentMonth } from '@/db/seed';
 import { applyReminderSetting, sendTestReminder } from '@/utils/notifications';
 import { enableSmsCapture, stopSmsCapture, isSmsModuleAvailable, ingestSmsBody, scanRecent } from '@/utils/smsReader';
@@ -29,7 +29,7 @@ const ordinal = (n: number) => {
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { setActiveMonth } = useActiveMonth();
+  const { activeMonth, setActiveMonth } = useActiveMonth();
   const { t, lang, setLang, calendar, setCalendar } = useLang();
   const [busy, setBusy] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
@@ -37,6 +37,7 @@ export default function SettingsScreen() {
   const [cycleOpen, setCycleOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [reminders, setReminders] = useState(false);
   const [smsOn, setSmsOn] = useState(false);
 
@@ -68,13 +69,25 @@ export default function SettingsScreen() {
     Alert.alert(captured ? t('alert.simCaptured') : t('alert.simNone'), captured ? t('alert.simCaptured.body') : t('alert.simNone.body'));
   };
 
-  const scanNow = async () => {
+  const onReset = () => {
+    Alert.alert(t('reset.confirmTitle'), t('reset.confirmBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('reset.confirmTitle'),
+        style: 'destructive',
+        onPress: async () => { await resetSpending(activeMonth); Alert.alert(t('reset.done')); },
+      },
+    ]);
+  };
+
+  const doScan = async (days: number) => {
+    setScanOpen(false);
     if (!isSmsModuleAvailable()) {
       Alert.alert(t('alert.needBuild'), t('alert.needBuild.scan'));
       return;
     }
-    const n = await scanRecent(7);
-    Alert.alert(t('alert.scanComplete'), n > 0 ? t('alert.scanFound', { n }) : t('alert.scanNone'));
+    const n = await scanRecent(days);
+    Alert.alert(t('alert.scanComplete'), n > 0 ? t('scan.found', { n }) : t('scan.none'));
   };
 
   const toggleReminders = async (on: boolean) => {
@@ -212,7 +225,7 @@ export default function SettingsScreen() {
         right={<Switch value={smsOn} onValueChange={toggleSms} trackColor={{ true: colors.primary, false: colors.surfaceAlt }} />}
       />
       <View style={{ flexDirection: 'row', gap: spacing.lg, paddingBottom: spacing.md }}>
-        <Pressable onPress={scanNow}>
+        <Pressable onPress={() => setScanOpen(true)}>
           <Text style={{ color: colors.primary, fontSize: font.size.sm, fontWeight: '600' }}>{t('settings.scanNow')}</Text>
         </Pressable>
         <Pressable onPress={simulateSms}>
@@ -238,6 +251,15 @@ export default function SettingsScreen() {
         </View>
       )}
 
+      <View style={{ height: 1, backgroundColor: colors.hairline }} />
+      <Row
+        icon={RotateCcw}
+        title={t('settings.reset')}
+        subtitle={t('settings.reset.sub')}
+        onPress={onReset}
+        right={<ChevronRight size={20} color={colors.textFaint} />}
+      />
+
       <Text style={{ color: colors.textFaint, fontSize: font.size.xs, marginTop: spacing.xxl, textAlign: 'center' }}>
         {t('settings.localNote')}
       </Text>
@@ -246,6 +268,13 @@ export default function SettingsScreen() {
         {LANGS.map((l) => (
           <SheetOption key={l} label={LANG_NAMES[l]} selected={l === lang} onPress={() => { setLang(l); setLangOpen(false); }} />
         ))}
+      </BottomSheet>
+
+      <BottomSheet visible={scanOpen} onClose={() => setScanOpen(false)} title={t('scan.sheetTitle')}>
+        <SheetOption label={t('scan.hour')} onPress={() => doScan(1 / 24)} />
+        <SheetOption label={t('scan.day')} onPress={() => doScan(1)} />
+        <SheetOption label={t('scan.4days')} onPress={() => doScan(4)} />
+        <SheetOption label={t('scan.7days')} onPress={() => doScan(7)} />
       </BottomSheet>
 
       <BottomSheet visible={calOpen} onClose={() => setCalOpen(false)} title={t('settings.calendarSheet')}>

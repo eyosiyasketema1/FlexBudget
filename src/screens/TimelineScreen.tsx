@@ -51,7 +51,7 @@ export default function TimelineScreen() {
   const t = useT();
   const localize = useLocalizeName();
   const { snapshot, totals, rollups } = useMonth(activeMonth);
-  const [hidden, setHidden] = useState(false);
+  const [hidden, setHidden] = useState(true); // amount hidden by default each load
 
   const income = (snapshot?.income ?? []).filter((i) => !i.isArchived);
   const salary = income[0]; // single salary account
