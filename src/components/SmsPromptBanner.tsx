@@ -57,8 +57,16 @@ export default function SmsPromptBanner() {
 
       {pending.map((sms) => (
         <View key={sms.id} style={{ marginBottom: spacing.md, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.hairline }}>
-          <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>{formatCents(sms.amountCents)}</Text>
-          <Text numberOfLines={2} style={{ color: colors.textFaint, fontSize: font.size.xs, marginBottom: spacing.sm }}>{sms.body}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ color: colors.text, fontSize: font.size.lg, fontWeight: '800' }}>{formatCents(sms.amountCents)}</Text>
+            {sms.sender ? <Text style={{ color: colors.primary, fontSize: font.size.xs, fontWeight: '700' }}>{sms.sender}</Text> : null}
+          </View>
+          {sms.msgDate ? (
+            <Text style={{ color: colors.textMuted, fontSize: font.size.xs, marginTop: 1 }}>
+              {new Date(sms.msgDate).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+            </Text>
+          ) : null}
+          <Text numberOfLines={2} style={{ color: colors.textFaint, fontSize: font.size.xs, marginTop: 4, marginBottom: spacing.sm }}>{sms.body}</Text>
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             <Pressable
               onPress={() => (subs.length ? setPickerFor(sms) : Alert.alert('No sub-categories', 'Add one in Expense Category Management first.'))}

@@ -30,18 +30,18 @@ export async function requestSmsPermission(): Promise<boolean> {
 }
 
 /**
- * Run a raw SMS body through the parser and, if it's an outgoing transaction,
- * queue it for the user to confirm. Returns true if something was captured.
- * Used by the inbox scan and the in-app "simulate" test button.
+ * Run a raw SMS through the parser and, if it's an outgoing transaction, queue
+ * it for the user to confirm. Returns true if something was captured. Used by
+ * the inbox scan and the in-app "simulate" test button.
  */
-export async function ingestSmsBody(body: string): Promise<boolean> {
+export async function ingestSmsBody(body: string, sender?: string | null, date?: number | null): Promise<boolean> {
   const parsed = parseTransactionSms(body);
   if (!parsed || parsed.kind !== 'debit') return false; // only money going out
-  await addPendingSms(body, parsed.amountCents, parsed.kind);
+  await addPendingSms(body, parsed.amountCents, parsed.kind, sender ?? null, date ?? null);
   return true;
 }
 
-function listInbox(minDate: number): Promise<{ body: string; date: number }[]> {
+function listInbox(minDate: number): Promise<{ body: string; date: number; address: string }[]> {
   return new Promise((resolve) => {
     if (!isSmsModuleAvailable()) return resolve([]);
     try {
@@ -51,7 +51,7 @@ function listInbox(minDate: number): Promise<{ body: string; date: number }[]> {
         (_count: number, listJson: string) => {
           try {
             const arr = JSON.parse(listJson);
-            resolve(arr.map((m: any) => ({ body: String(m.body ?? ''), date: Number(m.date ?? 0) })));
+            resolve(arr.map((m: any) => ({ body: String(m.body ?? ''), date: Number(m.date ?? 0), address: String(m.address ?? '') })));
           } catch {
             resolve([]);
           }
@@ -72,7 +72,7 @@ async function doScan(sinceMs: number): Promise<number> {
   let maxDate = last;
   for (const m of msgs) {
     if (m.date > maxDate) maxDate = m.date;
-    if (await ingestSmsBody(m.body)) captured++;
+    if (await ingestSmsBody(m.body, m.address, m.date)) captured++;
   }
   if (maxDate > last) await setSmsLastScan(maxDate);
   return captured;

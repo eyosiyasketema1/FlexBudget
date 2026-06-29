@@ -83,6 +83,8 @@ CREATE TABLE IF NOT EXISTS pending_sms (
   body         TEXT NOT NULL,
   amount_cents INTEGER NOT NULL,
   kind         TEXT NOT NULL,
+  sender       TEXT,
+  msg_date     INTEGER,
   created_at   INTEGER NOT NULL
 );
 `;
@@ -98,6 +100,11 @@ export async function initDatabase(): Promise<void> {
   const iCols = await db.getAllAsync<{ name: string }>('PRAGMA table_info(expense_items)');
   if (!iCols.some((c) => c.name === 'is_recurring')) {
     await db.execAsync('ALTER TABLE expense_items ADD COLUMN is_recurring INTEGER NOT NULL DEFAULT 0');
+  }
+  const pCols = await db.getAllAsync<{ name: string }>('PRAGMA table_info(pending_sms)');
+  if (pCols.length > 0 && !pCols.some((c) => c.name === 'sender')) {
+    await db.execAsync('ALTER TABLE pending_sms ADD COLUMN sender TEXT');
+    await db.execAsync('ALTER TABLE pending_sms ADD COLUMN msg_date INTEGER');
   }
 }
 

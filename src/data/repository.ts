@@ -412,9 +412,9 @@ export async function setSmsLastScan(ms: number): Promise<void> {
 }
 
 // ── Pending SMS-captured transactions (await user confirmation) ───────────────
-export interface PendingSms { id: string; body: string; amountCents: number; kind: string; createdAt: number; }
+export interface PendingSms { id: string; body: string; amountCents: number; kind: string; sender: string | null; msgDate: number | null; createdAt: number; }
 
-export async function addPendingSms(body: string, amountCents: number, kind: string): Promise<void> {
+export async function addPendingSms(body: string, amountCents: number, kind: string, sender?: string | null, msgDate?: number | null): Promise<void> {
   // Skip duplicates (same message captured twice by a re-scan).
   const dup = await first<{ id: string }>(
     'SELECT id FROM pending_sms WHERE body = ? AND amount_cents = ?',
@@ -422,15 +422,15 @@ export async function addPendingSms(body: string, amountCents: number, kind: str
   );
   if (dup) return;
   await run(
-    'INSERT INTO pending_sms (id, body, amount_cents, kind, created_at) VALUES (?, ?, ?, ?, ?)',
-    [makeId('SMS'), body, amountCents, kind, Date.now()],
+    'INSERT INTO pending_sms (id, body, amount_cents, kind, sender, msg_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [makeId('SMS'), body, amountCents, kind, sender ?? null, msgDate ?? null, Date.now()],
   );
   notifyChange();
 }
 
 export async function listPendingSms(): Promise<PendingSms[]> {
-  const rows = await all<any>('SELECT * FROM pending_sms ORDER BY created_at DESC');
-  return rows.map((r) => ({ id: r.id, body: r.body, amountCents: r.amount_cents, kind: r.kind, createdAt: r.created_at }));
+  const rows = await all<any>('SELECT * FROM pending_sms ORDER BY COALESCE(msg_date, created_at) DESC');
+  return rows.map((r) => ({ id: r.id, body: r.body, amountCents: r.amount_cents, kind: r.kind, sender: r.sender ?? null, msgDate: r.msg_date ?? null, createdAt: r.created_at }));
 }
 
 export async function dismissPendingSms(id: string): Promise<void> {
