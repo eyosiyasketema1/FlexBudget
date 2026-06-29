@@ -16,6 +16,7 @@ import { setLangCache, setCalendarCache } from '@/utils/date';
 import RootNavigator from '@/navigation/RootNavigator';
 import OnboardingScreen from '@/screens/OnboardingScreen';
 import LockScreen from '@/screens/LockScreen';
+import { DialogHost } from '@/components/Dialog';
 import { colors } from '@/theme/theme';
 import { FONT_FAMILY, fontAssets } from '@/theme/fonts';
 
@@ -121,6 +122,7 @@ export default function App() {
             <RootNavigator />
           </ActiveMonthProvider>
         )}
+        <DialogHost />
       </LanguageProvider>
     </SafeAreaProvider>
   );

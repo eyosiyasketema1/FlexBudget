@@ -37,7 +37,7 @@ export default function RecurringPromptBanner() {
   };
 
   return (
-    <View style={{ marginHorizontal: spacing.lg, marginBottom: spacing.lg, backgroundColor: colors.primaryFaint, borderWidth: 1, borderColor: colors.primarySoft, borderRadius: radius.lg, padding: spacing.lg }}>
+    <View style={{ marginHorizontal: spacing.lg, marginBottom: spacing.lg, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.lg }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <Repeat size={18} color={colors.primary} strokeWidth={2} />
         <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>{t('recurring.title')}</Text>

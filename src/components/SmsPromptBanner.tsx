@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, Alert } from 'react-native';
+import { showDialog } from '@/components/Dialog';
 import { MessageSquareText, ChevronDown } from 'lucide-react-native';
 
 import Button from '@/components/Button';
@@ -46,7 +47,7 @@ export default function SmsPromptBanner() {
   };
 
   return (
-    <View style={{ marginHorizontal: spacing.lg, marginBottom: spacing.lg, backgroundColor: colors.primaryFaint, borderWidth: 1, borderColor: colors.primarySoft, borderRadius: radius.lg, padding: spacing.lg }}>
+    <View style={{ marginHorizontal: spacing.lg, marginBottom: spacing.lg, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.lg }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <MessageSquareText size={18} color={colors.primary} strokeWidth={2} />
         <Text style={{ color: colors.text, fontSize: font.size.md, fontWeight: '700' }}>{t('sms.title')}</Text>
@@ -66,10 +67,10 @@ export default function SmsPromptBanner() {
               {new Date(sms.msgDate).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
             </Text>
           ) : null}
-          <Text numberOfLines={2} style={{ color: colors.textFaint, fontSize: font.size.xs, marginTop: 4, marginBottom: spacing.sm }}>{sms.body}</Text>
+          <Text numberOfLines={2} style={{ color: colors.textMuted, fontSize: font.size.xs, marginTop: 4, marginBottom: spacing.sm }}>{sms.body}</Text>
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             <Pressable
-              onPress={() => (subs.length ? setPickerFor(sms) : Alert.alert('No sub-categories', 'Add one in Expense Category Management first.'))}
+              onPress={() => (subs.length ? setPickerFor(sms) : showDialog(t('record.noSubsTitle'), t('record.noSubsBody')))}
               style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 10 }}
             >
               <Text style={{ color: colors.text, fontWeight: '600' }}>{t('sms.logTo')}</Text>

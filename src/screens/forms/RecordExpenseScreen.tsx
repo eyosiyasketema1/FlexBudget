@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Alert, View, Text, Pressable } from 'react-native';
+import { showDialog } from '@/components/Dialog';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { ChevronDown, Trash2 } from 'lucide-react-native';
 
@@ -48,21 +49,21 @@ export default function RecordExpenseScreen() {
   }, [chosen]);
 
   const onDelete = (entry: ExpenseEntry) => {
-    Alert.alert(t('record.deleteTitle'), t('record.deleteBody', { amount: formatCents(entry.amountCents) }), [
+    showDialog(t('record.deleteTitle'), t('record.deleteBody', { amount: formatCents(entry.amountCents) }), [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('common.delete'), style: 'destructive', onPress: () => deleteExpenseEntry(entry.id) },
     ]);
   };
 
   const onSave = async () => {
-    if (!chosen) return Alert.alert(t('record.pickFirst'));
+    if (!chosen) return showDialog(t('record.pickFirst'));
     const cents = toCents(amount);
-    if (cents <= 0) return Alert.alert(t('record.enterAmount'));
+    if (cents <= 0) return showDialog(t('record.enterAmount'));
     try {
       await recordExpense(chosen.id, cents, reason);
       nav.goBack();
     } catch (e) {
-      Alert.alert(t('common.couldNotSave'), (e as Error).message);
+      showDialog(t('common.couldNotSave'), (e as Error).message);
     }
   };
 
@@ -81,7 +82,7 @@ export default function RecordExpenseScreen() {
         {t('record.subcategory')}
       </Text>
       <Pressable
-        onPress={() => (subs.length ? setPickerOpen(true) : Alert.alert(t('record.noSubsTitle'), t('record.noSubsBody')))}
+        onPress={() => (subs.length ? setPickerOpen(true) : showDialog(t('record.noSubsTitle'), t('record.noSubsBody')))}
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 14, marginBottom: spacing.md }}
       >
         <Text style={{ color: chosen ? colors.text : colors.textFaint, fontSize: font.size.md, fontWeight: '600' }}>{chosen ? localize(chosen.name) : t('record.select')}</Text>

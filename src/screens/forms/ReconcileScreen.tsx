@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Alert, View, Text, Pressable } from 'react-native';
+import { showDialog } from '@/components/Dialog';
 import { useNavigation } from '@react-navigation/native';
 import { ChevronDown, Scale } from 'lucide-react-native';
 
@@ -50,13 +51,13 @@ export default function ReconcileScreen() {
 
   const onLog = async () => {
     if (gap === null || gap <= 0) return;
-    if (!chosen) return Alert.alert(t('reconcile.pickCat'), t('reconcile.pickCatBody'));
+    if (!chosen) return showDialog(t('reconcile.pickCat'), t('reconcile.pickCatBody'));
     try {
       await recordExpense(chosen.id, gap, 'Reconciliation — untracked spending');
-      Alert.alert(t('reconcile.caughtTitle'), t('reconcile.caughtBody', { amount: formatCents(gap), name: chosen.name }));
+      showDialog(t('reconcile.caughtTitle'), t('reconcile.caughtBody', { amount: formatCents(gap), name: chosen.name }));
       nav.goBack();
     } catch (e) {
-      Alert.alert(t('common.couldNotSave'), (e as Error).message);
+      showDialog(t('common.couldNotSave'), (e as Error).message);
     }
   };
 
@@ -100,7 +101,7 @@ export default function ReconcileScreen() {
             {t('reconcile.assignTo')}
           </Text>
           <Pressable
-            onPress={() => (subs.length ? setPickerOpen(true) : Alert.alert(t('record.noSubsTitle'), t('record.noSubsBody')))}
+            onPress={() => (subs.length ? setPickerOpen(true) : showDialog(t('record.noSubsTitle'), t('record.noSubsBody')))}
             style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 14, marginBottom: spacing.lg }}
           >
             <Text style={{ color: chosen ? colors.text : colors.textFaint, fontSize: font.size.md, fontWeight: '600' }}>{chosen ? `${chosen.name} · ${chosen.categoryName}` : t('record.select')}</Text>

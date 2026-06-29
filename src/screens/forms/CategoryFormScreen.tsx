@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Alert, View, Text, Pressable } from 'react-native';
+import { showDialog } from '@/components/Dialog';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 
 import Field from '@/components/Field';
@@ -41,10 +42,10 @@ export default function CategoryFormScreen() {
   }, [categoryId]);
 
   const onSave = async () => {
-    if (!name.trim()) return Alert.alert(t('category.nameFirst'));
+    if (!name.trim()) return showDialog(t('category.nameFirst'));
     const capValue = cap.trim() === '' ? null : Number(cap);
     if (capValue != null && (Number.isNaN(capValue) || capValue < 0 || capValue > 100)) {
-      return Alert.alert(t('category.capError'));
+      return showDialog(t('category.capError'));
     }
     const data = { name: name.trim(), allocationCapPercent: capValue, bucket };
     try {
@@ -52,13 +53,13 @@ export default function CategoryFormScreen() {
       else await addCategory(activeMonth, data);
       nav.goBack();
     } catch (e) {
-      Alert.alert(t('common.couldNotSave'), (e as Error).message);
+      showDialog(t('common.couldNotSave'), (e as Error).message);
     }
   };
 
   const onDelete = () => {
     if (!categoryId) return;
-    Alert.alert(t('category.removeTitle'), t('category.removeBody'), [
+    showDialog(t('category.removeTitle'), t('category.removeBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.archive'),

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Alert, View, Text, Switch, Pressable } from 'react-native';
+import { showDialog } from '@/components/Dialog';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { ChevronDown } from 'lucide-react-native';
 
@@ -59,14 +60,14 @@ export default function ItemFormScreen() {
 
   const openPicker = () => {
     if (categories.length === 0) {
-      return Alert.alert(t('item.noMainTitle'), t('item.noMainBody'));
+      return showDialog(t('item.noMainTitle'), t('item.noMainBody'));
     }
     setPickerOpen(true);
   };
 
   const onSave = async () => {
-    if (!name.trim()) return Alert.alert(t('item.nameFirst'));
-    if (!chosenCat) return Alert.alert(t('item.pickMain'), t('item.pickMainBody'));
+    if (!name.trim()) return showDialog(t('item.nameFirst'));
+    if (!chosenCat) return showDialog(t('item.pickMain'), t('item.pickMainBody'));
     const data = {
       name: name.trim(),
       budgetCapCents: toCents(cap),
@@ -83,13 +84,13 @@ export default function ItemFormScreen() {
       }
       nav.goBack();
     } catch (e) {
-      Alert.alert(t('common.couldNotSave'), (e as Error).message);
+      showDialog(t('common.couldNotSave'), (e as Error).message);
     }
   };
 
   const onDelete = () => {
     if (!itemId) return;
-    Alert.alert(t('item.removeTitle'), t('item.removeBody'), [
+    showDialog(t('item.removeTitle'), t('item.removeBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('common.archive'), style: 'destructive', onPress: async () => { await archiveItem(itemId); nav.goBack(); } },
     ]);

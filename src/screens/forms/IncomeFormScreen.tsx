@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Alert } from 'react-native';
+import { showDialog } from '@/components/Dialog';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 
 import Field from '@/components/Field';
@@ -33,20 +34,20 @@ export default function IncomeFormScreen() {
   }, [incomeId]);
 
   const onSave = async () => {
-    if (!label.trim()) return Alert.alert(t('income.addLabelFirst'));
+    if (!label.trim()) return showDialog(t('income.addLabelFirst'));
     const data = { label: label.trim(), category: category.trim() || 'Other', amountCents: toCents(amount) };
     try {
       if (incomeId) await updateIncome(incomeId, data);
       else await addIncome(activeMonth, data);
       nav.goBack();
     } catch (e) {
-      Alert.alert(t('common.couldNotSave'), (e as Error).message);
+      showDialog(t('common.couldNotSave'), (e as Error).message);
     }
   };
 
   const onDelete = () => {
     if (!incomeId) return;
-    Alert.alert(t('income.removeTitle'), t('income.removeBody'), [
+    showDialog(t('income.removeTitle'), t('income.removeBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.archive'),

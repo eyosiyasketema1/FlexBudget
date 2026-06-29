@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Alert, Text } from 'react-native';
+import { showDialog } from '@/components/Dialog';
 import { useNavigation } from '@react-navigation/native';
 
 import Field from '@/components/Field';
@@ -20,16 +21,16 @@ export default function AppLockScreen() {
   useEffect(() => { getAppLockHash().then((h) => setHasLock(!!h)); }, []);
 
   const save = async () => {
-    if (pw.trim().length < 4) return Alert.alert(t('lock.tooShort'));
-    if (pw !== confirm) return Alert.alert(t('lock.mismatch'));
+    if (pw.trim().length < 4) return showDialog(t('lock.tooShort'));
+    if (pw !== confirm) return showDialog(t('lock.mismatch'));
     await setAppLockHash(hashPassword(pw));
-    Alert.alert(t('lock.saved'));
+    showDialog(t('lock.saved'));
     nav.goBack();
   };
 
   const remove = async () => {
     await clearAppLock();
-    Alert.alert(t('lock.removed'));
+    showDialog(t('lock.removed'));
     nav.goBack();
   };
 

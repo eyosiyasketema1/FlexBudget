@@ -34,6 +34,7 @@ export const STRINGS: Record<string, Record<Lang, string>> = {
 
   // ── Common ────────────────────────────────────────────────────────────────
   'common.cancel': { en: 'Cancel', am: 'ሰርዝ', om: 'Dhiisi', sw: 'Ghairi' },
+  'common.ok': { en: 'OK', am: 'እሺ', om: 'Tole', sw: 'Sawa' },
   'common.save': { en: 'Save', am: 'አስቀምጥ', om: 'Olkaa\'i', sw: 'Hifadhi' },
   'common.back': { en: 'Back', am: 'ተመለስ', om: 'Duubatti', sw: 'Rudi' },
   'common.delete': { en: 'Delete', am: 'ሰርዝ', om: 'Haqi', sw: 'Futa' },

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { showDialog } from '@/components/Dialog';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronDown, PiggyBank, Wallet, MessageSquareText, BadgeCheck } from 'lucide-react-native';
 
@@ -27,7 +28,7 @@ export default function OnboardingScreen({ onDone }: { onDone: (salaryCents: num
 
   const finish = () => {
     const cents = toCents(salary);
-    if (cents <= 0) return Alert.alert(t('onboard.enterSalary'));
+    if (cents <= 0) return showDialog(t('onboard.enterSalary'));
     onDone(cents, day);
   };
 

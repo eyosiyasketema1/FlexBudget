@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, Switch } from 'react-native';
+import { showDialog } from '@/components/Dialog';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -80,7 +81,7 @@ export default function SettingsScreen() {
 
   const toggleSms = async (on: boolean) => {
     if (on && !isSmsModuleAvailable()) {
-      Alert.alert(t('alert.needBuild'), t('alert.needBuild.body'));
+      showDialog(t('alert.needBuild'), t('alert.needBuild.body'));
       return;
     }
     setSmsOn(on);
@@ -88,8 +89,8 @@ export default function SettingsScreen() {
       const started = await enableSmsCapture();
       await setSmsCaptureEnabled(started);
       setSmsOn(started);
-      if (started) Alert.alert(t('alert.smsOn'), t('alert.smsOn.body'));
-      else Alert.alert(t('alert.smsPerm'), t('alert.smsPerm.body'));
+      if (started) showDialog(t('alert.smsOn'), t('alert.smsOn.body'));
+      else showDialog(t('alert.smsPerm'), t('alert.smsPerm.body'));
     } else {
       stopSmsCapture();
       await setSmsCaptureEnabled(false);
@@ -99,16 +100,16 @@ export default function SettingsScreen() {
   const simulateSms = async () => {
     const sample = 'Dear customer, you have transferred ETB 250.00 to ABEBE STORE. Your balance is ETB 1,300.45. Ref 8842';
     const captured = await ingestSmsBody(sample);
-    Alert.alert(captured ? t('alert.simCaptured') : t('alert.simNone'), captured ? t('alert.simCaptured.body') : t('alert.simNone.body'));
+    showDialog(captured ? t('alert.simCaptured') : t('alert.simNone'), captured ? t('alert.simCaptured.body') : t('alert.simNone.body'));
   };
 
   const onReset = () => {
-    Alert.alert(t('reset.confirmTitle'), t('reset.confirmBody'), [
+    showDialog(t('reset.confirmTitle'), t('reset.confirmBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('reset.confirmTitle'),
         style: 'destructive',
-        onPress: async () => { await resetSpending(activeMonth); Alert.alert(t('reset.done')); },
+        onPress: async () => { await resetSpending(activeMonth); showDialog(t('reset.done')); },
       },
     ]);
   };
@@ -116,19 +117,19 @@ export default function SettingsScreen() {
   const doScan = async (days: number) => {
     setScanOpen(false);
     if (!isSmsModuleAvailable()) {
-      Alert.alert(t('alert.needBuild'), t('alert.needBuild.scan'));
+      showDialog(t('alert.needBuild'), t('alert.needBuild.scan'));
       return;
     }
     // Never read without permission — request it, and show a clear modal if denied.
     if (!(await hasSmsPermission())) {
       const granted = await requestSmsPermission();
       if (!granted) {
-        Alert.alert(t('alert.smsPerm'), t('alert.smsPerm.body'));
+        showDialog(t('alert.smsPerm'), t('alert.smsPerm.body'));
         return;
       }
     }
     const n = await scanRecent(days);
-    Alert.alert(t('alert.scanComplete'), n > 0 ? t('scan.found', { n }) : t('scan.none'));
+    showDialog(t('alert.scanComplete'), n > 0 ? t('scan.found', { n }) : t('scan.none'));
   };
 
   const toggleReminders = async (on: boolean) => {
@@ -136,7 +137,7 @@ export default function SettingsScreen() {
     const applied = await applyReminderSetting(on);
     await setRemindersEnabled(applied);
     setReminders(applied);
-    if (on && !applied) Alert.alert(t('alert.remindersUnavailable'), t('alert.remindersUnavailable.body'));
+    if (on && !applied) showDialog(t('alert.remindersUnavailable'), t('alert.remindersUnavailable.body'));
   };
 
   // Safe: ensureCurrentMonth is guarded so it never creates a backwards/dummy
@@ -156,7 +157,7 @@ export default function SettingsScreen() {
       setBusy(true);
       await exportBackup();
     } catch (e) {
-      Alert.alert(t('alert.backupFailed'), (e as Error).message);
+      showDialog(t('alert.backupFailed'), (e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -167,7 +168,7 @@ export default function SettingsScreen() {
     const picked = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
     if (picked.canceled || !picked.assets?.[0]) return;
     const uri = picked.assets[0].uri;
-    Alert.alert(t('alert.replaceAll'), t('alert.replaceAll.body'), [
+    showDialog(t('alert.replaceAll'), t('alert.replaceAll.body'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('alert.restoreReplace'),
@@ -176,9 +177,9 @@ export default function SettingsScreen() {
           try {
             setBusy(true);
             await importBackup(uri);
-            Alert.alert(t('alert.restored'), t('alert.restored.body'));
+            showDialog(t('alert.restored'), t('alert.restored.body'));
           } catch (e) {
-            Alert.alert(t('alert.restoreFailed'), (e as Error).message);
+            showDialog(t('alert.restoreFailed'), (e as Error).message);
           } finally {
             setBusy(false);
           }
@@ -241,7 +242,7 @@ export default function SettingsScreen() {
       <Pressable
         onPress={async () => {
           const ok = await sendTestReminder();
-          Alert.alert(ok ? t('alert.testSent') : t('alert.testFail'), ok ? t('alert.testSent.body') : t('alert.testFail.body'));
+          showDialog(ok ? t('alert.testSent') : t('alert.testFail'), ok ? t('alert.testSent.body') : t('alert.testFail.body'));
         }}
         style={{ paddingBottom: spacing.md }}
       >
