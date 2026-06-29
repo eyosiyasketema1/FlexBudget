@@ -353,6 +353,25 @@ export async function setRemindersEnabled(on: boolean): Promise<void> {
   await setSetting(REMINDERS_KEY, on ? '1' : '0');
 }
 
+// Reminder frequency: '6h' | '12h' | 'daily'. For 'daily', reminder_hour (0-23).
+const REMINDER_FREQ_KEY = 'reminder_frequency';
+const REMINDER_HOUR_KEY = 'reminder_hour';
+export async function getReminderFrequency(): Promise<'6h' | '12h' | 'daily'> {
+  const v = await getSetting(REMINDER_FREQ_KEY);
+  return v === '12h' || v === 'daily' ? v : '6h';
+}
+export async function setReminderFrequency(f: '6h' | '12h' | 'daily'): Promise<void> {
+  await setSetting(REMINDER_FREQ_KEY, f);
+}
+export async function getReminderHour(): Promise<number> {
+  const v = await getSetting(REMINDER_HOUR_KEY);
+  const n = v ? parseInt(v, 10) : 20;
+  return Number.isFinite(n) && n >= 0 && n <= 23 ? n : 20;
+}
+export async function setReminderHour(h: number): Promise<void> {
+  await setSetting(REMINDER_HOUR_KEY, String(Math.min(23, Math.max(0, Math.floor(h)))));
+}
+
 const SMS_KEY = 'sms_capture_enabled';
 export async function getSmsCaptureEnabled(): Promise<boolean> {
   return (await getSetting(SMS_KEY)) === '1';

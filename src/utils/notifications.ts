@@ -1,15 +1,20 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { getReminderFrequency, getReminderHour } from '@/data/repository';
+import { getStoredLang } from '@/i18n';
+import { translate } from '@/i18n';
 
-// Local reminder notifications: a gentle nudge every 6 hours to log any
-// spending you might have forgotten. Purely local — no server, no push token.
+// Local reminder notifications: a configurable nudge to log spending. Purely
+// local — no server, no push token. Frequency (every 6h / 12h / once a day) and
+// the daily time are user-adjustable in Settings, and each reminder carries
+// Yes/No action buttons.
 //
 // NOTE: expo-notifications is not fully supported inside Expo Go (SDK 53+).
-// Scheduling will be a no-op there; reminders fire reliably in a dev/production
-// build. All calls are wrapped so they never crash the app in Expo Go.
+// Scheduling and action buttons fire reliably in a dev/production build; in
+// Expo Go these calls are no-ops. Everything is wrapped so it never crashes.
 
-const SIX_HOURS_SECONDS = 6 * 60 * 60;
 const REMINDER_TAG = 'flexbudget-log-reminder';
+const CATEGORY_ID = 'reminder-actions';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -20,6 +25,19 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
+
+/** Register the Yes/No action buttons (localized) for reminder notifications. */
+async function registerActions(): Promise<void> {
+  try {
+    const lang = await getStoredLang();
+    await Notifications.setNotificationCategoryAsync(CATEGORY_ID, [
+      { identifier: 'YES', buttonTitle: translate(lang, 'notif.yes'), options: { opensAppToForeground: true } },
+      { identifier: 'NO', buttonTitle: translate(lang, 'notif.no'), options: { opensAppToForeground: false } },
+    ]);
+  } catch {
+    // ignore — actions just won't show
+  }
+}
 
 /** Ask for permission. Returns true if granted. */
 export async function requestReminderPermission(): Promise<boolean> {
@@ -42,23 +60,26 @@ export async function requestReminderPermission(): Promise<boolean> {
   }
 }
 
-/** Cancel any existing reminder, then schedule a repeating one every 6 hours. */
+/** Cancel the existing reminder, then schedule per the saved frequency/time. */
 export async function scheduleReminders(): Promise<void> {
   try {
     await cancelReminders();
-    await Notifications.scheduleNotificationAsync({
-      identifier: REMINDER_TAG,
-      content: {
-        title: 'FlexBudget',
-        body: 'Spend anything? Take a few seconds to log it so your budget stays accurate.',
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: SIX_HOURS_SECONDS,
-        repeats: true,
-        channelId: 'reminders',
-      },
-    });
+    await registerActions();
+    const [lang, freq, hour] = await Promise.all([getStoredLang(), getReminderFrequency(), getReminderHour()]);
+    const content = {
+      title: 'FlexBudget',
+      body: translate(lang, 'notif.reminderBody'),
+      categoryIdentifier: CATEGORY_ID,
+    };
+
+    let trigger: Notifications.NotificationTriggerInput;
+    if (freq === 'daily') {
+      trigger = { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute: 0, channelId: 'reminders' };
+    } else {
+      const seconds = (freq === '12h' ? 12 : 6) * 60 * 60;
+      trigger = { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds, repeats: true, channelId: 'reminders' };
+    }
+    await Notifications.scheduleNotificationAsync({ identifier: REMINDER_TAG, content, trigger });
   } catch {
     // no-op in Expo Go / when unsupported
   }
@@ -77,16 +98,11 @@ export async function sendTestReminder(): Promise<boolean> {
   try {
     const granted = await requestReminderPermission();
     if (!granted) return false;
+    await registerActions();
+    const lang = await getStoredLang();
     await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'FlexBudget',
-        body: 'Test reminder — notifications are working. Background the app to see this as a banner.',
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: 2,
-        channelId: 'reminders',
-      },
+      content: { title: 'FlexBudget', body: translate(lang, 'notif.reminderBody'), categoryIdentifier: CATEGORY_ID },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 2, channelId: 'reminders' },
     });
     return true;
   } catch {

@@ -12,6 +12,7 @@ import TimelineScreen from '@/screens/TimelineScreen';
 import BudgetScreen from '@/screens/BudgetScreen';
 import InsightsScreen from '@/screens/InsightsScreen';
 import ConfirmScreen from '@/screens/ConfirmScreen';
+import HelpScreen from '@/screens/HelpScreen';
 import RolloverScreen from '@/screens/RolloverScreen';
 import MonthDetailScreen from '@/screens/MonthDetailScreen';
 import SettingsScreen from '@/screens/SettingsScreen';
@@ -24,6 +25,7 @@ import ReconcileScreen from '@/screens/forms/ReconcileScreen';
 export type RootStackParamList = {
   Tabs: undefined;
   Budget: undefined;
+  Help: undefined;
   Rollover: undefined;
   MonthDetail: { monthYear: string };
   RecordExpense: { itemId?: string } | undefined;
@@ -82,6 +84,7 @@ export default function RootNavigator() {
       >
         <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
         <Stack.Screen name="Budget" component={BudgetScreen} options={{ title: t('nav.expenseCategories') }} />
+        <Stack.Screen name="Help" component={HelpScreen} options={{ title: t('settings.howItWorks') }} />
         <Stack.Screen name="Rollover" component={RolloverScreen} options={{ title: t('nav.rollover') }} />
         <Stack.Screen name="MonthDetail" component={MonthDetailScreen} options={{ title: t('nav.month') }} />
         <Stack.Group screenOptions={{ presentation: 'modal' }}>

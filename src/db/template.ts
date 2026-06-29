@@ -36,7 +36,7 @@ export const BUDGET_TEMPLATE: TemplateCategory[] = [
     bucket: 'wants',
     capPercent: 20,
     items: [
-      { name: 'Date', budgetCents: 300_000 },
+      { name: 'Lifestyle', budgetCents: 300_000 },
       { name: 'Coffee', budgetCents: 100_000 },
       { name: 'Gym', budgetCents: 150_000 },
     ],

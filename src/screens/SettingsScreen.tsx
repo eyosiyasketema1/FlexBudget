@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { LucideIcon } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import { Tags, ShieldCheck, Download, Upload, ChevronRight, ChevronDown, CalendarClock, BellRing, MessageSquareText, Languages, CalendarDays, RotateCcw } from 'lucide-react-native';
+import { Tags, ShieldCheck, Download, Upload, ChevronRight, ChevronDown, CalendarClock, BellRing, MessageSquareText, Languages, CalendarDays, RotateCcw, Clock, HelpCircle } from 'lucide-react-native';
 
 import Button from '@/components/Button';
 import ScreenTitle from '@/components/ScreenTitle';
@@ -15,9 +15,9 @@ import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useActiveMonth } from '@/state/ActiveMonthContext';
 import { useLang, LANGS, LANG_NAMES } from '@/i18n';
 import { exportBackup, importBackup } from '@/data/backup';
-import { getCycleStartDayStored, setCycleStartDayStored, getRemindersEnabled, setRemindersEnabled, getSmsCaptureEnabled, setSmsCaptureEnabled, resetSpending } from '@/data/repository';
+import { getCycleStartDayStored, setCycleStartDayStored, getRemindersEnabled, setRemindersEnabled, getSmsCaptureEnabled, setSmsCaptureEnabled, resetSpending, getReminderFrequency, setReminderFrequency, getReminderHour, setReminderHour } from '@/data/repository';
 import { ensureCurrentMonth } from '@/db/seed';
-import { applyReminderSetting, sendTestReminder } from '@/utils/notifications';
+import { applyReminderSetting, sendTestReminder, scheduleReminders } from '@/utils/notifications';
 import { enableSmsCapture, stopSmsCapture, isSmsModuleAvailable, ingestSmsBody, scanRecent } from '@/utils/smsReader';
 import { setCycleStartDayCache } from '@/utils/date';
 
@@ -40,10 +40,31 @@ export default function SettingsScreen() {
   const [scanOpen, setScanOpen] = useState(false);
   const [reminders, setReminders] = useState(false);
   const [smsOn, setSmsOn] = useState(false);
+  const [freq, setFreq] = useState<'6h' | '12h' | 'daily'>('6h');
+  const [hour, setHour] = useState(20);
+  const [freqOpen, setFreqOpen] = useState(false);
+  const [timeOpen, setTimeOpen] = useState(false);
 
   useEffect(() => { getCycleStartDayStored().then(setCycleDay); }, []);
   useEffect(() => { getRemindersEnabled().then(setReminders); }, []);
   useEffect(() => { getSmsCaptureEnabled().then(setSmsOn); }, []);
+  useEffect(() => { getReminderFrequency().then(setFreq); }, []);
+  useEffect(() => { getReminderHour().then(setHour); }, []);
+
+  const freqLabel = freq === 'daily' ? t('freq.dailyAt', { time: `${String(hour).padStart(2, '0')}:00` }) : freq === '12h' ? t('freq.12h') : t('freq.6h');
+
+  const chooseFreq = async (f: '6h' | '12h' | 'daily') => {
+    setFreq(f);
+    setFreqOpen(false);
+    await setReminderFrequency(f);
+    if (reminders) await scheduleReminders();
+  };
+  const chooseHour = async (h: number) => {
+    setHour(h);
+    setTimeOpen(false);
+    await setReminderHour(h);
+    if (reminders) await scheduleReminders();
+  };
 
   const toggleSms = async (on: boolean) => {
     if (on && !isSmsModuleAvailable()) {
@@ -160,6 +181,12 @@ export default function SettingsScreen() {
   );
 
   const hairline = <View style={{ height: 1, backgroundColor: colors.hairline }} />;
+  const Section = ({ label }: { label: string }) => (
+    <Text style={{ color: colors.textMuted, fontSize: font.size.xs, fontWeight: '700', letterSpacing: font.tracking.caps, marginTop: spacing.xl, marginBottom: 2 }}>
+      {label}
+    </Text>
+  );
+  const chevron = <ChevronRight size={20} color={colors.textFaint} />;
 
   return (
     <ScrollView
@@ -168,38 +195,21 @@ export default function SettingsScreen() {
     >
       <ScreenTitle title={t('settings.title')} />
 
-      <Row
-        icon={Tags}
-        title={t('settings.categoryMgmt')}
-        subtitle={t('settings.categoryMgmt.sub')}
-        onPress={() => nav.navigate('Budget')}
-        right={<ChevronRight size={20} color={colors.textFaint} />}
-      />
+      <Section label={t('settings.section.general')} />
+      <Row icon={HelpCircle} title={t('settings.howItWorks')} subtitle={t('settings.howItWorks.sub')} onPress={() => nav.navigate('Help')} right={chevron} />
       {hairline}
-      <Row
-        icon={Languages}
-        title={t('settings.language')}
-        subtitle={LANG_NAMES[lang]}
-        onPress={() => setLangOpen(true)}
-        right={<ChevronRight size={20} color={colors.textFaint} />}
-      />
+      <Row icon={Languages} title={t('settings.language')} subtitle={LANG_NAMES[lang]} onPress={() => setLangOpen(true)} right={chevron} />
       {hairline}
-      <Row
-        icon={CalendarDays}
-        title={t('settings.calendar')}
-        subtitle={calendar === 'ethiopian' ? t('calendar.ethiopian') : t('calendar.gregorian')}
-        onPress={() => setCalOpen(true)}
-        right={<ChevronRight size={20} color={colors.textFaint} />}
-      />
+      <Row icon={CalendarDays} title={t('settings.calendar')} subtitle={calendar === 'ethiopian' ? t('calendar.ethiopian') : t('calendar.gregorian')} onPress={() => setCalOpen(true)} right={chevron} />
+
+      <Section label={t('settings.section.budget')} />
+      <Row icon={Tags} title={t('settings.categoryMgmt')} subtitle={t('settings.categoryMgmt.sub')} onPress={() => nav.navigate('Budget')} right={chevron} />
       {hairline}
-      <Row
-        icon={CalendarClock}
-        title={t('settings.cycle')}
-        subtitle={cycleDay === 1 ? t('settings.cycle.calendar') : t('settings.cycle.fromDay', { day: ordinal(cycleDay) })}
-        onPress={() => setCycleOpen(true)}
-        right={<ChevronRight size={20} color={colors.textFaint} />}
-      />
+      <Row icon={CalendarClock} title={t('settings.cycle')} subtitle={cycleDay === 1 ? t('settings.cycle.calendar') : t('settings.cycle.fromDay', { day: ordinal(cycleDay) })} onPress={() => setCycleOpen(true)} right={chevron} />
       {hairline}
+      <Row icon={RotateCcw} title={t('settings.reset')} subtitle={t('settings.reset.sub')} onPress={onReset} right={chevron} />
+
+      <Section label={t('settings.section.automation')} />
       <Row
         icon={BellRing}
         title={t('settings.reminders')}
@@ -207,6 +217,7 @@ export default function SettingsScreen() {
         onPress={() => toggleReminders(!reminders)}
         right={<Switch value={reminders} onValueChange={toggleReminders} trackColor={{ true: colors.primary, false: colors.surfaceAlt }} />}
       />
+      <Row icon={Clock} title={t('settings.reminderWhen')} subtitle={freqLabel} onPress={() => setFreqOpen(true)} right={chevron} />
       <Pressable
         onPress={async () => {
           const ok = await sendTestReminder();
@@ -232,15 +243,15 @@ export default function SettingsScreen() {
           <Text style={{ color: colors.primary, fontSize: font.size.sm, fontWeight: '600' }}>{t('settings.simulate')}</Text>
         </Pressable>
       </View>
-      {hairline}
+
+      <Section label={t('settings.section.data')} />
       <Row
         icon={ShieldCheck}
         title={t('settings.backup')}
         subtitle={t('settings.backup.sub')}
         onPress={() => setBackupOpen((o) => !o)}
-        right={backupOpen ? <ChevronDown size={20} color={colors.textFaint} /> : <ChevronRight size={20} color={colors.textFaint} />}
+        right={backupOpen ? <ChevronDown size={20} color={colors.textFaint} /> : chevron}
       />
-
       {backupOpen && (
         <View style={{ paddingTop: spacing.md }}>
           <Text style={{ color: colors.textMuted, fontSize: font.size.sm, marginBottom: spacing.md }}>
@@ -251,15 +262,6 @@ export default function SettingsScreen() {
         </View>
       )}
 
-      <View style={{ height: 1, backgroundColor: colors.hairline }} />
-      <Row
-        icon={RotateCcw}
-        title={t('settings.reset')}
-        subtitle={t('settings.reset.sub')}
-        onPress={onReset}
-        right={<ChevronRight size={20} color={colors.textFaint} />}
-      />
-
       <Text style={{ color: colors.textFaint, fontSize: font.size.xs, marginTop: spacing.xxl, textAlign: 'center' }}>
         {t('settings.localNote')}
       </Text>
@@ -267,6 +269,18 @@ export default function SettingsScreen() {
       <BottomSheet visible={langOpen} onClose={() => setLangOpen(false)} title={t('settings.langSheet')}>
         {LANGS.map((l) => (
           <SheetOption key={l} label={LANG_NAMES[l]} selected={l === lang} onPress={() => { setLang(l); setLangOpen(false); }} />
+        ))}
+      </BottomSheet>
+
+      <BottomSheet visible={freqOpen} onClose={() => setFreqOpen(false)} title={t('settings.reminderWhenSheet')}>
+        <SheetOption label={t('freq.6h')} selected={freq === '6h'} onPress={() => chooseFreq('6h')} />
+        <SheetOption label={t('freq.12h')} selected={freq === '12h'} onPress={() => chooseFreq('12h')} />
+        <SheetOption label={t('freq.daily')} selected={freq === 'daily'} onPress={() => { chooseFreq('daily'); setTimeOpen(true); }} />
+      </BottomSheet>
+
+      <BottomSheet visible={timeOpen} onClose={() => setTimeOpen(false)} title={t('settings.reminderTimeSheet')}>
+        {[6, 8, 12, 15, 18, 20, 21].map((h) => (
+          <SheetOption key={h} label={`${String(h).padStart(2, '0')}:00`} selected={hour === h} onPress={() => chooseHour(h)} />
         ))}
       </BottomSheet>
 
