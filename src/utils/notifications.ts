@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { getReminderFrequency, getReminderHour, getReminderMinute } from '@/data/repository';
+import { getReminderCount, getReminderSound, getReminderWindow } from '@/data/repository';
+import { reminderTimes } from '@/utils/reminderSchedule';
 import { getStoredLang } from '@/i18n';
 import { translate } from '@/i18n';
 
@@ -60,26 +61,23 @@ export async function requestReminderPermission(): Promise<boolean> {
   }
 }
 
-/** Cancel the existing reminder, then schedule per the saved frequency/time. */
+/** Cancel existing reminders, then schedule `count` daily ones across the window. */
 export async function scheduleReminders(): Promise<void> {
   try {
     await cancelReminders();
     await registerActions();
-    const [lang, freq, hour, minute] = await Promise.all([getStoredLang(), getReminderFrequency(), getReminderHour(), getReminderMinute()]);
-    const content = {
-      title: 'FlexBudget',
-      body: translate(lang, 'notif.reminderBody'),
-      categoryIdentifier: CATEGORY_ID,
-    };
-
-    let trigger: Notifications.NotificationTriggerInput;
-    if (freq === 'daily') {
-      trigger = { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute, channelId: 'reminders' };
-    } else {
-      const seconds = (freq === '12h' ? 12 : 6) * 60 * 60;
-      trigger = { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds, repeats: true, channelId: 'reminders' };
+    const [lang, count, sound, win] = await Promise.all([
+      getStoredLang(), getReminderCount(), getReminderSound(), getReminderWindow(),
+    ]);
+    const times = reminderTimes(win.startH, win.startM, win.endH, win.endM, count);
+    const body = translate(lang, 'notif.reminderBody');
+    for (let i = 0; i < times.length; i++) {
+      await Notifications.scheduleNotificationAsync({
+        identifier: `${REMINDER_TAG}-${i}`,
+        content: { title: 'FlexBudget', body, categoryIdentifier: CATEGORY_ID, sound: sound ? 'default' : undefined },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: times[i].hour, minute: times[i].minute, channelId: 'reminders' },
+      });
     }
-    await Notifications.scheduleNotificationAsync({ identifier: REMINDER_TAG, content, trigger });
   } catch {
     // no-op in Expo Go / when unsupported
   }
@@ -87,7 +85,13 @@ export async function scheduleReminders(): Promise<void> {
 
 export async function cancelReminders(): Promise<void> {
   try {
-    await Notifications.cancelScheduledNotificationAsync(REMINDER_TAG);
+    // Remove all of our scheduled reminders (the old single tag + the new N).
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    await Promise.all(
+      scheduled
+        .filter((s) => typeof s.identifier === 'string' && s.identifier.startsWith(REMINDER_TAG))
+        .map((s) => Notifications.cancelScheduledNotificationAsync(s.identifier)),
+    );
   } catch {
     // ignore if not scheduled
   }

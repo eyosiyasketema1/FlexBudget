@@ -381,6 +381,30 @@ export async function setReminderMinute(m: number): Promise<void> {
   await setSetting(REMINDER_MIN_KEY, String(Math.min(59, Math.max(0, Math.floor(m)))));
 }
 
+// Set-Reminder config: how many times/day, sound, and the daily start–end window.
+const num = async (key: string, def: number, lo: number, hi: number) => {
+  const v = await getSetting(key);
+  const n = v ? parseInt(v, 10) : def;
+  return Number.isFinite(n) && n >= lo && n <= hi ? n : def;
+};
+export async function getReminderCount(): Promise<number> { return num('reminder_count', 1, 1, 12); }
+export async function setReminderCount(n: number): Promise<void> { await setSetting('reminder_count', String(Math.min(12, Math.max(1, Math.floor(n))))); }
+export async function getReminderSound(): Promise<boolean> { return (await getSetting('reminder_sound')) !== '0'; }
+export async function setReminderSound(b: boolean): Promise<void> { await setSetting('reminder_sound', b ? '1' : '0'); }
+export interface ReminderWindow { startH: number; startM: number; endH: number; endM: number }
+export async function getReminderWindow(): Promise<ReminderWindow> {
+  return {
+    startH: await num('reminder_start_h', 8, 0, 23), startM: await num('reminder_start_m', 0, 0, 59),
+    endH: await num('reminder_end_h', 20, 0, 23), endM: await num('reminder_end_m', 0, 0, 59),
+  };
+}
+export async function setReminderStart(h: number, m: number): Promise<void> {
+  await setSetting('reminder_start_h', String(h)); await setSetting('reminder_start_m', String(m));
+}
+export async function setReminderEnd(h: number, m: number): Promise<void> {
+  await setSetting('reminder_end_h', String(h)); await setSetting('reminder_end_m', String(m));
+}
+
 const SMS_KEY = 'sms_capture_enabled';
 export async function getSmsCaptureEnabled(): Promise<boolean> {
   return (await getSetting(SMS_KEY)) === '1';

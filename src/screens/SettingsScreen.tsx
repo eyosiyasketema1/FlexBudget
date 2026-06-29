@@ -235,19 +235,9 @@ export default function SettingsScreen() {
         icon={BellRing}
         title={t('settings.reminders')}
         subtitle={t('settings.reminders.sub')}
-        onPress={() => toggleReminders(!reminders)}
-        right={<Switch value={reminders} onValueChange={toggleReminders} trackColor={{ true: colors.primary, false: colors.surfaceAlt }} />}
+        onPress={() => nav.navigate('Reminder')}
+        right={chevron}
       />
-      <Row icon={Clock} title={t('settings.reminderWhen')} subtitle={freqLabel} onPress={() => setFreqOpen(true)} right={chevron} />
-      <Pressable
-        onPress={async () => {
-          const ok = await sendTestReminder();
-          showDialog(ok ? t('alert.testSent') : t('alert.testFail'), ok ? t('alert.testSent.body') : t('alert.testFail.body'));
-        }}
-        style={{ paddingBottom: spacing.md }}
-      >
-        <Text style={{ color: colors.primary, fontSize: font.size.sm, fontWeight: '600' }}>{t('settings.testReminder')}</Text>
-      </Pressable>
       {hairline}
       <Row
         icon={MessageSquareText}
@@ -301,21 +291,6 @@ export default function SettingsScreen() {
           <SheetOption key={l} label={LANG_NAMES[l]} selected={l === lang} onPress={() => { setLang(l); setLangOpen(false); }} />
         ))}
       </BottomSheet>
-
-      <BottomSheet visible={freqOpen} onClose={() => setFreqOpen(false)} title={t('settings.reminderWhenSheet')}>
-        <SheetOption label={t('freq.6h')} selected={freq === '6h'} onPress={() => chooseFreq('6h')} />
-        <SheetOption label={t('freq.12h')} selected={freq === '12h'} onPress={() => chooseFreq('12h')} />
-        <SheetOption label={t('freq.daily')} selected={freq === 'daily'} onPress={() => chooseFreq('daily')} />
-      </BottomSheet>
-
-      {timeOpen && (
-        <DateTimePicker
-          value={new Date(2000, 0, 1, hour, minute)}
-          mode="time"
-          is24Hour
-          onChange={onPickTime}
-        />
-      )}
 
       <BottomSheet visible={scanOpen} onClose={() => setScanOpen(false)} title={t('scan.sheetTitle')}>
         <SheetOption label={t('scan.hour')} onPress={() => doScan(1 / 24)} />
