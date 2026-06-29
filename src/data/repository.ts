@@ -429,6 +429,13 @@ export async function setAppLockHash(hash: string): Promise<void> {
 export async function clearAppLock(): Promise<void> {
   await setSetting(LOCK_KEY, '');
 }
+const BIOMETRIC_KEY = 'app_lock_biometric';
+export async function getBiometricEnabled(): Promise<boolean> {
+  return (await getSetting(BIOMETRIC_KEY)) !== '0'; // default on
+}
+export async function setBiometricEnabled(b: boolean): Promise<void> {
+  await setSetting(BIOMETRIC_KEY, b ? '1' : '0');
+}
 
 const ONBOARDED_KEY = 'onboarded';
 export async function getOnboarded(): Promise<boolean> {

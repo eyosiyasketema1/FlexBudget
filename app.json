@@ -18,7 +18,7 @@
     },
     "android": {
       "package": "com.flexbudget.app",
-      "versionCode": 6,
+      "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0E110F"
@@ -35,6 +35,12 @@
         "expo-notifications",
         {
           "color": "#00C8B3"
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Unlock FlexBudget with Face ID"
         }
       ],
       "./plugins/withGetSmsAndroidFix"
