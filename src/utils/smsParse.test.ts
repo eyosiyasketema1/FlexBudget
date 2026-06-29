@@ -71,6 +71,16 @@ describe('parseTransactionSms', () => {
     expect(parseTransactionSms(sms)).toEqual({ amountCents: 150000, kind: 'debit' });
   });
 
+  it('handles the amount before OR after the currency, incl. Amharic ብር', () => {
+    expect(parseTransactionSms('You paid 1,500.00 ETB at shop')).toEqual({ amountCents: 150000, kind: 'debit' });
+    expect(parseTransactionSms('ከሂሳብዎ 250.00 ብር ተቀንሷል')).toEqual({ amountCents: 25000, kind: 'debit' });
+    expect(parseTransactionSms('ብር 250.00 ተቀንሷል')).toEqual({ amountCents: 25000, kind: 'debit' });
+  });
+
+  it('does not treat "br" inside a word (e.g. brown) as currency', () => {
+    expect(parseTransactionSms('You have 100 brown boxes debited ETB 5')).toEqual({ amountCents: 500, kind: 'debit' });
+  });
+
   it('ignores promotional bank messages', () => {
     expect(parseTransactionSms('Open an account today and get ETB 50 bonus! Limited offer.')).toBeNull();
   });

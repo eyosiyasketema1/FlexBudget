@@ -31,7 +31,8 @@ const PROMO = /\b(bonus|offer|win|won|discount|promo|congratulation|sale|free|re
 
 // Currency amount: "ETB 1,250.00" / "Birr 250" / "Br. 99.50" / "ETB500" / "ብር 100"
 // and the amount-first form "250.00 Br". Allows an optional . or : after the token.
-const CURRENCY = /(?:etb|birr|br|ብር)[.\s:]*(\d[\d,]*(?:\.\d{1,2})?)|(\d[\d,]*(?:\.\d{1,2})?)\s*(?:etb|birr|br|ብር)\b/gi;
+// `(?![a-z0-9])` is an Amharic-safe word boundary (plain \b fails after ብር).
+const CURRENCY = /(?:etb|birr|br|ብር)[.\s:]*(\d[\d,]*(?:\.\d{1,2})?)|(\d[\d,]*(?:\.\d{1,2})?)\s*(?:etb|birr|br|ብር)(?![a-z0-9])/gi;
 
 // Words that precede a *balance* figure (to exclude it from the txn amount).
 const BALANCE_HINT = /(bal(?:ance)?|ቀሪ)\b[^.\d]*$/;
