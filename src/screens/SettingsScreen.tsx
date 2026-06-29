@@ -23,6 +23,7 @@ import { ensureCurrentMonth } from '@/db/seed';
 import { applyReminderSetting, sendTestReminder, scheduleReminders } from '@/utils/notifications';
 import { enableSmsCapture, stopSmsCapture, isSmsModuleAvailable, ingestSmsBody, scanRecent, hasSmsPermission, requestSmsPermission } from '@/utils/smsReader';
 import { setCycleStartDayCache } from '@/utils/date';
+import { VERSION_LABEL } from '@/constants/version';
 
 const ordinal = (n: number) => {
   const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
@@ -284,6 +285,9 @@ export default function SettingsScreen() {
 
       <Text style={{ color: colors.textFaint, fontSize: font.size.xs, marginTop: spacing.xxl, textAlign: 'center' }}>
         {t('settings.localNote')}
+      </Text>
+      <Text style={{ color: colors.textFaint, fontSize: font.size.xs, marginTop: spacing.xs, textAlign: 'center' }}>
+        FlexBudget {VERSION_LABEL}
       </Text>
 
       <BottomSheet visible={langOpen} onClose={() => setLangOpen(false)} title={t('settings.langSheet')}>
