@@ -66,6 +66,11 @@ describe('parseTransactionSms', () => {
     expect(parseTransactionSms(sms)).toEqual({ amountCents: 120000, kind: 'debit' });
   });
 
+  it('picks the transaction amount, not the balance, when currency comes before the number', () => {
+    const sms = 'Dear customer, ETB 1,500.00 is debited from your A/C for purchase. Available balance Birr 8,200.00';
+    expect(parseTransactionSms(sms)).toEqual({ amountCents: 150000, kind: 'debit' });
+  });
+
   it('ignores promotional bank messages', () => {
     expect(parseTransactionSms('Open an account today and get ETB 50 bonus! Limited offer.')).toBeNull();
   });
